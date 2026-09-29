@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  email        String    @unique
+  password     String
+  melocoins    Int       @default(100)
+  theme        String    @default("dark")
+  soundEnabled Boolean   @default(true)
+  lastFreePack DateTime?
+  isAdmin      Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  userCards     UserCard[]
+  tradeOffers   TradeOffer[]   @relation("offerer")
+  tradeBids     TradeBid[]
+  confirmations TradeConfirmation[]
+}
+
+model Card {
+  id          String  @id @default(cuid())
+  number      Int
+  name        String
+  character   String
+  race        String  // BLANC | NOIR | MEXICAIN | ZOULOU
+  planet      String  // LA_LOUVIERE | FEMME
+  rarity      String  // COMMUN | RARE | EPIQUE | MYTHIQUE | LEGENDAIRE | CHROMATIQUE
+  collection  String  // BLACK_VS_WHITE
+  imageUrl    String  @default("/placeholders/card-placeholder.svg")
+  description String?
+  isSecret    Boolean @default(false)
+
+  userCards     UserCard[]
+  tradeOffered  TradeOffer[] @relation("offeredCard")
+  tradeRequested TradeOffer[] @relation("requestedCard")
+
+  @@unique([collection, number])
+}
+
+model UserCard {
+  id         String   @id @default(cuid())
+  userId     String
+  cardId     String
+  quantity   Int      @default(1)
+  obtainedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId])
+}
+
+model Pack {
+  id          String  @id @default(cuid())
+  name        String
+  collection  String  // BLACK_VS_WHITE
+  price       Int     // in Melocoins
+  imageUrl    String  @default("/placeholders/pack-placeholder.svg")
+  isAvailable Boolean @default(true)
+  cardsCount  Int     @default(5)
+  description String?
+}
+
+model TradeOffer {
+  id              String    @id @default(cuid())
+  offererId       String
+  offeredCardId   String
+  type            String    // CARD_FOR_CARD | AUCTION
+  requestedCardId String?
+  minimumPrice    Int?
+  status          String    @default("OPEN") // OPEN | PENDING | COMPLETED | CANCELLED
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  offerer       User  @relation("offerer", fields: [offererId], references: [id], onDelete: Cascade)
+  offeredCard   Card  @relation("offeredCard", fields: [offeredCardId], references: [id], onDelete: Cascade)
+  requestedCard Card? @relation("requestedCard", fields: [requestedCardId], references: [id], onDelete: SetNull)
+
+  bids          TradeBid[]
+  confirmations TradeConfirmation[]
+}
+
+model TradeBid {
+  id           String   @id @default(cuid())
+  tradeOfferId String
+  bidderId     String
+  amount       Int
+  status       String   @default("PENDING") // PENDING | ACCEPTED | REJECTED
+  createdAt    DateTime @default(now())
+
+  tradeOffer TradeOffer @relation(fields: [tradeOfferId], references: [id], onDelete: Cascade)
+  bidder     User       @relation(fields: [bidderId], references: [id], onDelete: Cascade)
+}
+
+model TradeConfirmation {
+  id           String   @id @default(cuid())
+  tradeOfferId String
+  userId       String
+  confirmed    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  tradeOffer TradeOffer @relation(fields: [tradeOfferId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tradeOfferId, userId])
+}
