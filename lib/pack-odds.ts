@@ -40,16 +40,25 @@ export function rollRarity(): Rarity {
   return "COMMUN";
 }
 
+export const FREE_PACK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+export const MAX_FREE_PACKS = 10;
+
+export function getAvailablePackCount(lastFreePack: Date | null): number {
+  if (!lastFreePack) return MAX_FREE_PACKS;
+  const elapsed = Date.now() - lastFreePack.getTime();
+  return Math.min(MAX_FREE_PACKS, Math.floor(elapsed / FREE_PACK_INTERVAL_MS));
+}
+
 export function canOpenFreePack(lastFreePack: Date | null): boolean {
-  if (!lastFreePack) return true;
-  const now = new Date();
-  const diff = now.getTime() - lastFreePack.getTime();
-  return diff >= 24 * 60 * 60 * 1000; // 24 hours
+  return getAvailablePackCount(lastFreePack) > 0;
 }
 
 export function getNextFreePackTime(lastFreePack: Date | null): Date | null {
   if (!lastFreePack) return null;
-  return new Date(lastFreePack.getTime() + 24 * 60 * 60 * 1000);
+  const count = getAvailablePackCount(lastFreePack);
+  if (count >= MAX_FREE_PACKS) return null; // already full
+  // Next pack = base + (count + 1) hours
+  return new Date(lastFreePack.getTime() + (count + 1) * FREE_PACK_INTERVAL_MS);
 }
 
 export const COLLECTION_LABELS: Record<string, string> = {

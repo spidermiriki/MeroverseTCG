@@ -248,24 +248,14 @@ async function main() {
       price: 50,
       cardsCount: 5,
       isAvailable: true,
-      description: "Le premier booster du Meroverse. Contient 5 cartes de la collection Black vs White.",
-    },
-  });
-
-  await prisma.pack.create({
-    data: {
-      name: "Méga Booster Black vs White",
-      collection: "BLACK_VS_WHITE",
-      price: 120,
-      cardsCount: 10,
-      isAvailable: true,
-      description: "Un booster de 10 cartes avec un taux de rareté amélioré.",
+      imageUrl: "/packs/booster_blackVSwhite.jfif",
+      description: "Le booster du Meroverse. Contient 5 cartes de la collection Black vs White.",
     },
   });
 
   console.log("✅ Database seeded successfully!");
   console.log(`   - ${cards.length} cartes créées`);
-  console.log("   - 2 boosters créés");
+  console.log("   - 1 booster créé");
   console.log("   - 1 utilisateur admin (Gary) créé");
 }
 

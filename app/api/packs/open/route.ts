@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { rollRarity, canOpenFreePack } from "@/lib/pack-odds";
+import { rollRarity, getAvailablePackCount, FREE_PACK_INTERVAL_MS } from "@/lib/pack-odds";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Utilisateur introuvable." }, { status: 404 });
 
   if (isFree) {
-    if (!canOpenFreePack(user.lastFreePack)) {
-      return NextResponse.json({ error: "Votre booster gratuit n'est pas encore disponible." }, { status: 400 });
+    if (getAvailablePackCount(user.lastFreePack) === 0) {
+      return NextResponse.json({ error: "Aucun booster accumulé pour l'instant." }, { status: 400 });
     }
   } else {
     if (user.melocoins < pack.price) {
@@ -62,11 +62,16 @@ export async function POST(req: NextRequest) {
 
   // Update user inventory and melocoins in a transaction
   await prisma.$transaction(async (tx) => {
-    // Deduct coins or mark free pack used
+    // Deduct coins or consume 1 accumulated free pack
     if (isFree) {
+      // Recalculate inside transaction to stay consistent
+      const available = getAvailablePackCount(user.lastFreePack);
+      // After opening, remaining = available - 1
+      // Set lastFreePack so that floor((now - last) / 1h) = available - 1
+      const newLastFreePack = new Date(Date.now() - (available - 1) * FREE_PACK_INTERVAL_MS);
       await tx.user.update({
         where: { id: user.id },
-        data: { lastFreePack: new Date() },
+        data: { lastFreePack: newLastFreePack },
       });
     } else {
       await tx.user.update({
