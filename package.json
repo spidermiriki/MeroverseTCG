@@ -15,29 +15,31 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "next": "^14.2.5",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "@neon/config": "^1.8.2",
+    "@neon/env": "^1.4.7",
     "@prisma/client": "^5.17.0",
-    "next-auth": "^4.24.7",
     "bcryptjs": "^2.4.3",
+    "clsx": "^2.1.1",
     "framer-motion": "^11.3.19",
     "lucide-react": "^0.408.0",
-    "clsx": "^2.1.1",
+    "next": "^14.2.5",
+    "next-auth": "^4.24.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tailwind-merge": "^2.4.0"
   },
   "devDependencies": {
-    "typescript": "^5.5.3",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.14.11",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@types/bcryptjs": "^2.4.6",
-    "prisma": "^5.17.0",
-    "tsx": "^4.16.2",
-    "tailwindcss": "^3.4.6",
-    "postcss": "^8.4.39",
     "autoprefixer": "^10.4.19",
     "eslint": "^8.57.0",
-    "eslint-config-next": "^14.2.5"
+    "eslint-config-next": "^14.2.5",
+    "postcss": "^8.4.39",
+    "prisma": "^5.17.0",
+    "tailwindcss": "^3.4.6",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3"
   }
 }
