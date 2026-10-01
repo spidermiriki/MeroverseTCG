@@ -236,6 +236,44 @@ html, body {
   100% { filter: hue-rotate(360deg); box-shadow: 0 0 22px rgba(244,114,182,0.8); }
 }
 
+@keyframes holoShift {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+
+@keyframes cardFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+
+.card-float         { animation: cardFloat 3.6s ease-in-out infinite; }
+.card-float-delay-1 { animation-delay: 0.9s; }
+.card-float-delay-2 { animation-delay: 1.8s; }
+
+.card-holo-overlay {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    125deg,
+    rgba(255,0,128,0.22)   0%,
+    rgba(255,165,0,0.16)  16%,
+    rgba(255,255,0,0.14)  33%,
+    rgba(0,255,160,0.16)  50%,
+    rgba(0,140,255,0.20)  66%,
+    rgba(160,0,255,0.16)  83%,
+    rgba(255,0,128,0.22) 100%
+  );
+  background-size: 300% 300%;
+  opacity: 0.18;
+  transition: opacity 0.3s ease;
+}
+
+.card-holo-overlay.active {
+  animation: holoShift 2.5s ease infinite;
+  opacity: 0.75;
+}
+
 /* ============================================================
    COSMIC BUTTON
    ============================================================ */

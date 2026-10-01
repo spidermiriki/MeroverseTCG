@@ -35,15 +35,29 @@ model Card {
   name        String
   character   String
   race        String  // BLANC | NOIR | MEXICAIN | ZOULOU
-  planet      String  // LA_LOUVIERE | FEMME
-  rarity      String  // COMMUN | RARE | EPIQUE | MYTHIQUE | LEGENDAIRE | CHROMATIQUE
+  planet      String  @default("LA_LOUVIERE") // LA_LOUVIERE | FEMME
+  rarity      String  // COMMUN | RARE | EPIQUE | MYTHIQUE | LEGENDAIRE | CHROMATIQUE | RAINBOW
   collection  String  // BLACK_VS_WHITE
   imageUrl    String  @default("/placeholders/card-placeholder.svg")
   description String?
   isSecret    Boolean @default(false)
 
-  userCards     UserCard[]
-  tradeOffered  TradeOffer[] @relation("offeredCard")
+  // Champs jeu
+  gender         String @default("M")  // M | F | N
+  hp             Int    @default(100)
+  characterTypes Json   @default("[]") // string[]
+  attacks        Json   @default("[]") // { cost: string[], name: string, damage: string }[]
+  weaknesses     Json   @default("[]") // { type: string, mult: string }[]
+  resistances    Json   @default("[]") // { type: string, val: string }[]
+  totalCards     Int    @default(0)
+
+  // Paramètres d'affichage de l'art (full art)
+  artScale   Float @default(1.0)
+  artOffsetX Float @default(0.0)
+  artOffsetY Float @default(0.0)
+
+  userCards      UserCard[]
+  tradeOffered   TradeOffer[] @relation("offeredCard")
   tradeRequested TradeOffer[] @relation("requestedCard")
 
   @@unique([collection, number])
