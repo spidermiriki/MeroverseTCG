@@ -74,6 +74,17 @@ export default function CollectionDetailPage() {
     }
   };
 
+  const ownedCards = cards.filter((c) => c.owned);
+  const selectedIndex = selectedCard ? ownedCards.findIndex((c) => c.id === selectedCard.id) : -1;
+
+  const handleNavigate = (direction: "prev" | "next") => {
+    const nextIndex = direction === "prev" ? selectedIndex - 1 : selectedIndex + 1;
+    if (nextIndex < 0 || nextIndex >= ownedCards.length) return;
+    const next = ownedCards[nextIndex];
+    const uc = userCards[next.id];
+    setSelectedCard({ ...next, quantity: uc?.quantity } as CardData);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -128,7 +139,7 @@ export default function CollectionDetailPage() {
 
       {/* Cards grid */}
       <div className="px-4 py-4">
-        <div className="flex flex-wrap gap-3 justify-start">
+        <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
           {cards.map((card) => {
             if (!card.visible) return null;
 
@@ -141,7 +152,7 @@ export default function CollectionDetailPage() {
                   owned
                   quantity={uc?.quantity}
                   onClick={() => setSelectedCard({ ...card, quantity: uc?.quantity } as CardData)}
-                  size="sm"
+                  fillWidth
                 />
               );
             }
@@ -150,7 +161,7 @@ export default function CollectionDetailPage() {
               <CardSilhouette
                 key={card.id}
                 number={card.number}
-                size="sm"
+                fillWidth
               />
             );
           })}
@@ -165,6 +176,10 @@ export default function CollectionDetailPage() {
           onClose={() => setSelectedCard(null)}
           onSell={() => handleSell(selectedCard.id)}
           showSell
+          hasPrev={selectedIndex > 0}
+          hasNext={selectedIndex < ownedCards.length - 1}
+          onPrev={() => handleNavigate("prev")}
+          onNext={() => handleNavigate("next")}
         />
       )}
     </div>

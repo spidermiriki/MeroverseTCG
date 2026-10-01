@@ -6,6 +6,7 @@ import { Download, ImageIcon } from "lucide-react";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Race    = "BLANC" | "NOIR" | "MEXICAIN" | "ZOULOU";
+type Planet  = "LA_LOUVIERE" | "FEMME";
 type Rarity  = "COMMUN" | "RARE" | "EPIQUE" | "MYTHIQUE" | "LEGENDAIRE" | "CHROMATIQUE" | "RAINBOW";
 type Gender  = "M" | "F" | "N";
 
@@ -18,6 +19,7 @@ interface Attack {
 interface CardData {
   name: string;
   race: Race;
+  planet: Planet;
   rarity: Rarity;
   gender: Gender;
   hp: number;
@@ -31,6 +33,16 @@ interface CardData {
   totalCards: string;
   isSecret: boolean;
 }
+
+// ─── Collections connues ──────────────────────────────────────────────────────
+
+const KNOWN_COLLECTIONS = [
+  { key: "BLACK_VS_WHITE", label: "Black vs White", badge: "BvW" },
+] as const;
+
+const COLL_BADGE: Record<string, string> = Object.fromEntries(
+  KNOWN_COLLECTIONS.map((c) => [c.key, c.badge])
+);
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -223,7 +235,7 @@ function CardBottom({ card, border, textColor, subColor }: {
           letterSpacing: 0.5, textTransform: "uppercase",
           maxWidth: 56, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
-          {(card.collection || "COLL").slice(0, 8)}
+          {COLL_BADGE[card.collection] ?? (card.collection || "COLL").slice(0, 5)}
         </span>
         <span style={{ fontSize: 10, color: subColor, opacity: 0.8, letterSpacing: 0.4 }}>
           {card.cardNumber.padStart(3, "0")}/{card.totalCards.padStart(3, "0")}
@@ -515,11 +527,11 @@ function CardPreview({ card, cardRef, artScale, artOffsetX, artOffsetY }: {
 export default function CardEditorPage() {
   const cardRef = useRef<HTMLDivElement>(null);
   const [card, setCard] = useState<CardData>({
-    name: "", race: "BLANC", rarity: "COMMUN", gender: "M", hp: 100,
+    name: "", race: "BLANC", planet: "LA_LOUVIERE", rarity: "COMMUN", gender: "M", hp: 100,
     artSrc: null, characterTypes: [],
     attacks: [{ cost: [], name: "", damage: "" }, { cost: [], name: "", damage: "" }],
     weaknesses: [], resistances: [],
-    collection: "BLACK_VS_WHITE", cardNumber: "001", totalCards: "019",
+    collection: "BLACK_VS_WHITE", cardNumber: "001", totalCards: "032",
     isSecret: false,
   });
   const [draftW,     setDraftW]     = useState({ type: "", mult: "×2" });
@@ -527,8 +539,79 @@ export default function CardEditorPage() {
   const [artScale,   setArtScale]   = useState(1.0);
   const [artOffsetX, setArtOffsetX] = useState(0);
   const [artOffsetY, setArtOffsetY] = useState(0);
+  const [saving,     setSaving]     = useState(false);
+  const [saveStatus, setSaveStatus] = useState<{ ok: boolean; msg: string; conflict?: boolean } | null>(null);
+  const [syncing,    setSyncing]    = useState(false);
+  const [syncMsg,    setSyncMsg]    = useState<string | null>(null);
+  const [initing,    setIniting]    = useState(false);
+  const [initMsg,    setInitMsg]    = useState<string | null>(null);
+  const [resetting,  setResetting]  = useState(false);
+  const [resetMsg,   setResetMsg]   = useState<string | null>(null);
 
   const set = (patch: Partial<CardData>) => setCard((c) => ({ ...c, ...patch }));
+
+  const syncAdminCollection = async () => {
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const res = await fetch("/api/admin/sync-cards", { method: "POST" });
+      let data: { total?: number; error?: string } = {};
+      try { data = await res.json(); } catch { data = {}; }
+      if (!res.ok) {
+        setSyncMsg(`Erreur : ${data.error ?? res.status}`);
+      } else {
+        setSyncMsg(`✓ ${data.total} carte(s) synchronisée(s) dans ta collection.`);
+      }
+    } catch (err) {
+      setSyncMsg(String(err));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const initCollection = async () => {
+    setIniting(true);
+    setInitMsg(null);
+    try {
+      const total = parseInt(card.totalCards, 10) || 32;
+      const res = await fetch("/api/admin/init-collection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collection: card.collection, total }),
+      });
+      let data: { created?: number; total?: number; error?: string } = {};
+      try { data = await res.json(); } catch { data = {}; }
+      if (!res.ok) {
+        setInitMsg(`Erreur : ${data.error ?? res.status}`);
+      } else {
+        setInitMsg(`✓ ${data.created} placeholder(s) créé(s), totalCards = ${data.total} sur toutes les cartes.`);
+      }
+    } catch (err) {
+      setInitMsg(String(err));
+    } finally {
+      setIniting(false);
+    }
+  };
+
+  const resetCollection = async () => {
+    if (!confirm("Supprimer TOUTES les cartes BLACK_VS_WHITE et recréer les 45 cartes dans le bon ordre ?")) return;
+    setResetting(true);
+    setResetMsg(null);
+    try {
+      const res = await fetch("/api/admin/reset-collection", { method: "POST" });
+      let data: { deleted?: number; created?: number; error?: string } = {};
+      try { data = await res.json(); } catch { data = {}; }
+      if (!res.ok) {
+        setResetMsg(`Erreur : ${data.error ?? res.status}`);
+      } else {
+        setResetMsg(`✓ ${data.deleted} supprimée(s) → ${data.created} recréée(s) dans le bon ordre.`);
+      }
+    } catch (err) {
+      setResetMsg(String(err));
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const uploadArt = () => {
     const input = document.createElement("input");
@@ -576,7 +659,111 @@ export default function CardEditorPage() {
     const domtoimage = (await import("dom-to-image-more")).default;
     const dataUrl = await domtoimage.toPng(cardRef.current, { width: 300, height: 420 });
     const a = document.createElement("a");
-    a.download = `${card.name || "carte"}.png`; a.href = dataUrl; a.click();
+    a.download = `${card.cardNumber.padStart(3, "0")}.png`; a.href = dataUrl; a.click();
+  };
+
+  const saveToDb = async () => {
+    if (!card.name || !card.cardNumber) {
+      setSaveStatus({ ok: false, msg: "Remplis au moins le nom et le numéro de carte." });
+      return;
+    }
+    setSaving(true);
+    setSaveStatus(null);
+    try {
+      const num = parseInt(card.cardNumber, 10);
+      const total = parseInt(card.totalCards, 10);
+      const imageUrl = `/cards/${card.collection}/${card.cardNumber.padStart(3, "0")}.png`;
+
+      const res = await fetch("/api/cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          number:         num,
+          name:           card.name,
+          race:           card.race,
+          planet:         card.planet,
+          rarity:         card.rarity,
+          collection:     card.collection,
+          imageUrl,
+          isSecret:       card.isSecret,
+          gender:         card.gender,
+          hp:             card.hp,
+          characterTypes: card.characterTypes,
+          attacks:        card.attacks,
+          weaknesses:     card.weaknesses,
+          resistances:    card.resistances,
+          totalCards:     isNaN(total) ? 0 : total,
+          artScale,
+          artOffsetX,
+          artOffsetY,
+        }),
+      });
+
+      let data: { error?: string } = {};
+      try { data = await res.json(); } catch { data = { error: `Erreur HTTP ${res.status}` }; }
+      if (!res.ok) {
+        setSaveStatus({
+          ok: false,
+          msg: data.error ?? "Erreur inconnue.",
+          conflict: res.status === 409,
+        });
+      } else {
+        setSaveStatus({ ok: true, msg: `Carte sauvegardée ! Place le PNG dans : /public${imageUrl}` });
+        await exportPng();
+      }
+    } catch (err) {
+      setSaveStatus({ ok: false, msg: String(err) });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const replaceCard = async () => {
+    setSaving(true);
+    setSaveStatus(null);
+    try {
+      const num = parseInt(card.cardNumber, 10);
+      const total = parseInt(card.totalCards, 10);
+      const imageUrl = `/cards/${card.collection}/${card.cardNumber.padStart(3, "0")}.png`;
+
+      const res = await fetch("/api/cards", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          number:         num,
+          name:           card.name,
+          race:           card.race,
+          planet:         card.planet,
+          rarity:         card.rarity,
+          collection:     card.collection,
+          imageUrl,
+          isSecret:       card.isSecret,
+          gender:         card.gender,
+          hp:             card.hp,
+          characterTypes: card.characterTypes,
+          attacks:        card.attacks,
+          weaknesses:     card.weaknesses,
+          resistances:    card.resistances,
+          totalCards:     isNaN(total) ? 0 : total,
+          artScale,
+          artOffsetX,
+          artOffsetY,
+        }),
+      });
+
+      let data: { error?: string } = {};
+      try { data = await res.json(); } catch { data = { error: `Erreur HTTP ${res.status}` }; }
+      if (!res.ok) {
+        setSaveStatus({ ok: false, msg: data.error ?? "Erreur inconnue." });
+      } else {
+        setSaveStatus({ ok: true, msg: `Carte remplacée ! Place le PNG dans : /public${imageUrl}` });
+        await exportPng();
+      }
+    } catch (err) {
+      setSaveStatus({ ok: false, msg: String(err) });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const inp: React.CSSProperties = { width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(0,0,0,0.35)", color: "#fff", fontSize: 12, boxSizing: "border-box" };
@@ -588,7 +775,63 @@ export default function CardEditorPage() {
 
       {/* ── Sidebar ── */}
       <aside style={{ width: 282, overflowY: "auto", borderRight: "1px solid rgba(255,255,255,0.07)", padding: "16px 14px", display: "flex", flexDirection: "column", gap: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#c4b5fd" }}>Créateur de carte</h1>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <h1 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#c4b5fd" }}>Créateur de carte</h1>
+          <button
+            onClick={syncAdminCollection}
+            disabled={syncing}
+            title="Ajouter toutes les cartes DB à ma collection admin"
+            style={{ flexShrink: 0, padding: "5px 9px", borderRadius: 6, border: "1px solid rgba(196,181,253,0.25)", background: "rgba(124,58,237,0.15)", color: syncing ? "#7c3aed" : "#c4b5fd", cursor: syncing ? "not-allowed" : "pointer", fontSize: 10, fontWeight: 600, whiteSpace: "nowrap" }}
+          >
+            {syncing ? "Sync…" : "⟳ Sync collection"}
+          </button>
+        </div>
+
+        {syncMsg && (
+          <div style={{ padding: "7px 10px", borderRadius: 6, background: syncMsg.startsWith("✓") ? "rgba(34,197,94,0.10)" : "rgba(239,68,68,0.10)", border: `1px solid ${syncMsg.startsWith("✓") ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`, fontSize: 10, color: syncMsg.startsWith("✓") ? "#86efac" : "#fca5a5" }}>
+            {syncMsg}
+          </div>
+        )}
+
+        {/* Initialisation de la collection */}
+        <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 8, padding: "10px 12px", border: "1px solid rgba(255,255,255,0.05)" }}>
+          <p style={{ ...lbl, marginBottom: 8 }}>Initialiser la collection</p>
+          <p style={{ fontSize: 10, color: "#555", margin: "0 0 8px", lineHeight: 1.5 }}>
+            Crée les placeholders manquants (1→{card.totalCards}) et met à jour totalCards sur toutes les cartes. Donne également toutes les cartes à l&apos;admin.
+          </p>
+          <button
+            onClick={initCollection}
+            disabled={initing}
+            style={{ width: "100%", padding: "7px 0", borderRadius: 7, border: "none", cursor: initing ? "not-allowed" : "pointer", background: initing ? "rgba(251,191,36,0.1)" : "rgba(251,191,36,0.18)", color: initing ? "#b45309" : "#fbbf24", fontWeight: 700, fontSize: 11, opacity: initing ? 0.6 : 1 }}
+          >
+            {initing ? "Initialisation…" : `⚙ Init ${card.totalCards} slots · ${card.collection}`}
+          </button>
+          {initMsg && (
+            <div style={{ marginTop: 7, padding: "6px 8px", borderRadius: 6, background: initMsg.startsWith("✓") ? "rgba(34,197,94,0.10)" : "rgba(239,68,68,0.10)", border: `1px solid ${initMsg.startsWith("✓") ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`, fontSize: 10, color: initMsg.startsWith("✓") ? "#86efac" : "#fca5a5", lineHeight: 1.5 }}>
+              {initMsg}
+            </div>
+          )}
+        </div>
+
+        {/* Reset & Seed */}
+        <div style={{ background: "rgba(239,68,68,0.05)", borderRadius: 8, padding: "10px 12px", border: "1px solid rgba(239,68,68,0.2)" }}>
+          <p style={{ ...lbl, marginBottom: 8, color: "#f87171" }}>Reset &amp; Seed — BLACK_VS_WHITE</p>
+          <p style={{ fontSize: 10, color: "#555", margin: "0 0 8px", lineHeight: 1.5 }}>
+            Supprime toutes les cartes existantes et recrée les 45 cartes dans le bon ordre. Donne toutes les cartes à l&apos;admin.
+          </p>
+          <button
+            onClick={resetCollection}
+            disabled={resetting}
+            style={{ width: "100%", padding: "7px 0", borderRadius: 7, border: "none", cursor: resetting ? "not-allowed" : "pointer", background: resetting ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.22)", color: resetting ? "#f87171" : "#fca5a5", fontWeight: 700, fontSize: 11, opacity: resetting ? 0.6 : 1 }}
+          >
+            {resetting ? "Reset en cours…" : "⚠ Reset & Seed (45 cartes)"}
+          </button>
+          {resetMsg && (
+            <div style={{ marginTop: 7, padding: "6px 8px", borderRadius: 6, background: resetMsg.startsWith("✓") ? "rgba(34,197,94,0.10)" : "rgba(239,68,68,0.10)", border: `1px solid ${resetMsg.startsWith("✓") ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`, fontSize: 10, color: resetMsg.startsWith("✓") ? "#86efac" : "#fca5a5", lineHeight: 1.5 }}>
+              {resetMsg}
+            </div>
+          )}
+        </div>
 
         <div><p style={lbl}>Nom du personnage</p><input value={card.name} onChange={(e) => set({ name: e.target.value })} placeholder="Victor..." style={inp} /></div>
 
@@ -599,14 +842,21 @@ export default function CardEditorPage() {
               <option value="MEXICAIN">Mexicain</option><option value="ZOULOU">Zoulou</option>
             </select>
           </div>
-          <div><p style={lbl}>Rareté</p>
-            <select value={card.rarity} onChange={(e) => set({ rarity: e.target.value as Rarity })} style={sel}>
-              <option value="COMMUN">Commun</option><option value="RARE">Rare</option>
-              <option value="EPIQUE">Épique</option><option value="MYTHIQUE">Mythique</option>
-              <option value="LEGENDAIRE">Légendaire</option><option value="CHROMATIQUE">Chromatique</option>
-              <option value="RAINBOW">Rainbow ✦</option>
+          <div><p style={lbl}>Planète</p>
+            <select value={card.planet} onChange={(e) => set({ planet: e.target.value as Planet })} style={sel}>
+              <option value="LA_LOUVIERE">La Louvière</option>
+              <option value="FEMME">Femme</option>
             </select>
           </div>
+        </div>
+
+        <div><p style={lbl}>Rareté</p>
+          <select value={card.rarity} onChange={(e) => set({ rarity: e.target.value as Rarity })} style={sel}>
+            <option value="COMMUN">Commun</option><option value="RARE">Rare</option>
+            <option value="EPIQUE">Épique</option><option value="MYTHIQUE">Mythique</option>
+            <option value="LEGENDAIRE">Légendaire</option><option value="CHROMATIQUE">Chromatique</option>
+            <option value="RAINBOW">Rainbow ✦</option>
+          </select>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -641,7 +891,7 @@ export default function CardEditorPage() {
         </label>
 
         {/* Sliders pan/zoom — visibles uniquement en mode full art */}
-        {(card.isSecret || card.rarity === "LEGENDAIRE" || card.rarity === "CHROMATIQUE") && (
+        {(card.isSecret || card.rarity === "LEGENDAIRE" || card.rarity === "CHROMATIQUE" || card.rarity === "RAINBOW") && (
           <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
             <p style={lbl}>Position &amp; Zoom (full art)</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -735,16 +985,51 @@ export default function CardEditorPage() {
 
         <div><p style={lbl}>Collection &amp; Numéro</p>
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <input value={card.collection} onChange={(e) => set({ collection: e.target.value })} style={{ ...inp, flex: 1 }} />
+            <select value={card.collection} onChange={(e) => set({ collection: e.target.value })} style={{ ...sel, flex: 1 }}>
+              {KNOWN_COLLECTIONS.map((c) => (
+                <option key={c.key} value={c.key}>{c.label}</option>
+              ))}
+            </select>
             <input value={card.cardNumber} onChange={(e) => set({ cardNumber: e.target.value })} maxLength={3} placeholder="001" style={{ ...inp, width: 42, textAlign: "center" }} />
             <span style={{ color: "#555", fontSize: 12 }}>/</span>
             <input value={card.totalCards} onChange={(e) => set({ totalCards: e.target.value })} maxLength={3} placeholder="019" style={{ ...inp, width: 42, textAlign: "center" }} />
           </div>
         </div>
 
-        <button onClick={exportPng} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 0", borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#7c3aed,#4f46e5)", color: "#fff", fontWeight: 700, fontSize: 14, marginTop: 4 }}>
-          <Download size={15} /> Exporter PNG
+        <button onClick={exportPng} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 0", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(79,70,229,0.3)", color: "#a5b4fc", fontWeight: 600, fontSize: 13 }}>
+          <Download size={14} /> Exporter PNG
         </button>
+
+        <button
+          onClick={saveToDb}
+          disabled={saving}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 0", borderRadius: 10, border: "none", cursor: saving ? "not-allowed" : "pointer", background: saving ? "rgba(34,197,94,0.2)" : "linear-gradient(135deg,#16a34a,#15803d)", color: saving ? "#86efac" : "#fff", fontWeight: 700, fontSize: 14, opacity: saving ? 0.7 : 1 }}
+        >
+          {saving ? "Sauvegarde…" : "✓ Valider la carte"}
+        </button>
+
+        {saveStatus && (
+          <div style={{ padding: "10px 12px", borderRadius: 8, background: saveStatus.ok ? "rgba(34,197,94,0.12)" : saveStatus.conflict ? "rgba(234,179,8,0.12)" : "rgba(239,68,68,0.12)", border: `1px solid ${saveStatus.ok ? "rgba(34,197,94,0.35)" : saveStatus.conflict ? "rgba(234,179,8,0.35)" : "rgba(239,68,68,0.35)"}`, fontSize: 11, color: saveStatus.ok ? "#86efac" : saveStatus.conflict ? "#fde047" : "#fca5a5", lineHeight: 1.5 }}>
+            {saveStatus.msg}
+            {saveStatus.conflict && (
+              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                <button
+                  onClick={replaceCard}
+                  disabled={saving}
+                  style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(234,179,8,0.3)", color: "#fde047", fontWeight: 700, fontSize: 11 }}
+                >
+                  Remplacer
+                </button>
+                <button
+                  onClick={() => setSaveStatus(null)}
+                  style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(255,255,255,0.06)", color: "#aaa", fontWeight: 600, fontSize: 11 }}
+                >
+                  Annuler
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </aside>
 
       {/* ── Aperçu ── */}
