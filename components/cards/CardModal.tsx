@@ -15,9 +15,9 @@ const RARITY_RGB: Record<string, string> = {
 
 function glowShadow(rgb: string) {
   return [
-    `0 0 18px 6px rgba(${rgb},0.9)`,
-    `0 0 50px 18px rgba(${rgb},0.45)`,
-    `0 0 100px 40px rgba(${rgb},0.2)`,
+    `0 0 10px 3px rgba(${rgb},0.55)`,
+    `0 0 28px 8px rgba(${rgb},0.22)`,
+    `0 0 55px 16px rgba(${rgb},0.10)`,
   ].join(", ");
 }
 
