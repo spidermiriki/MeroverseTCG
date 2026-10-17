@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "chore/**", "feat/**"]
+  pull_request:
+    branches: ["main"]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+jobs:
+  verifications:
+    name: verifications
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: "postgresql://fake:fake@localhost:5432/fake"
+          NEXTAUTH_SECRET: "ci-fake-secret-32-chars-minimum!!"
+          NEXTAUTH_URL: "http://localhost:3000"
+
+  fichiers-proteges:
+    name: fichiers-proteges
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Vérifier les fichiers protégés
+        env:
+          LABEL_AUTORISE: "editeur-autorise"
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          BASE_REF="origin/${{ github.base_ref }}"
+
+          # --- Label bypass ---
+          if echo "$PR_LABELS" | grep -q "$LABEL_AUTORISE"; then
+            echo "Label '$LABEL_AUTORISE' détecté — vérification ignorée."
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only "${BASE_REF}...HEAD")
+          echo "Fichiers modifiés :"
+          echo "$CHANGED"
+          FOUND=0
+
+          # --- Fichiers toujours bloqués (éditeur de cartes) ---
+          HARD_PATTERNS=(
+            "app/(admin)/admin/card-editor"
+            "app/api/cards"
+            "app/api/admin"
+            "lib/db.ts"
+          )
+          for pattern in "${HARD_PATTERNS[@]}"; do
+            if echo "$CHANGED" | grep -q "$pattern"; then
+              echo "ERREUR : fichier éditeur protégé modifié → $pattern"
+              FOUND=1
+            fi
+          done
+
+          # --- schema.prisma : bloquer seulement si le bloc model Card a changé ---
+          if echo "$CHANGED" | grep -q "prisma/schema.prisma"; then
+            extract_card_block() {
+              awk '/^model Card \{/{found=1} found{print} found && /^\}/{found=0}' "$1"
+            }
+
+            git show "${BASE_REF}:prisma/schema.prisma" > /tmp/schema_base.prisma
+            extract_card_block /tmp/schema_base.prisma > /tmp/card_block_base.txt
+            extract_card_block prisma/schema.prisma > /tmp/card_block_head.txt
+
+            if ! diff -q /tmp/card_block_base.txt /tmp/card_block_head.txt > /dev/null 2>&1; then
+              echo "ERREUR : le bloc 'model Card' a changé dans prisma/schema.prisma"
+              diff /tmp/card_block_base.txt /tmp/card_block_head.txt || true
+              FOUND=1
+            else
+              echo "OK : schema.prisma modifié mais le bloc 'model Card' est inchangé."
+            fi
+          fi
+
+          if [ "$FOUND" -eq 1 ]; then
+            echo ""
+            echo "Pour modifier ces fichiers, ajoutez le label '$LABEL_AUTORISE' à la PR."
+            exit 1
+          fi
+
+          echo "Aucun fichier protégé modifié."
