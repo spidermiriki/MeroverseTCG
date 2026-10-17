@@ -32,6 +32,13 @@ interface CardData {
   cardNumber: string;
   totalCards: string;
   isSecret: boolean;
+  // Style du nom (pure-art : CHROMATIQUE / RAINBOW)
+  nameFont: string;
+  nameColor: string;
+  namePosX: number;
+  namePosY: number;
+  nameAlign: "left" | "center" | "right";
+  nameSize: number;
 }
 
 // ─── Collections connues ──────────────────────────────────────────────────────
@@ -257,12 +264,14 @@ function CardPreview({ card, cardRef, artScale, artOffsetX, artOffsetY }: {
   const rs        = RACE_STYLE[card.race];
   const border    = RARITY_BORDER[card.rarity];
   const isFullArt = card.isSecret || card.rarity === "LEGENDAIRE" || card.rarity === "CHROMATIQUE" || card.rarity === "RAINBOW";
+  const isPureArt = card.rarity === "CHROMATIQUE" || card.rarity === "RAINBOW";
 
   // ── Mode full art (carte secrète / Légendaire / Chromatique) ──
   if (isFullArt) {
     return (
       <>
         <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Orbitron:wght@700;900&family=Bebas+Neue&family=Playfair+Display:ital,wght@0,700;1,700&family=Rajdhani:wght@700&family=Permanent+Marker&display=swap');
           @keyframes borderPulse {
             0%, 100% { opacity: 0.75; box-shadow: inset 0 0 10px ${border}40, 0 0 18px ${border}40; }
             50%       { opacity: 1;   box-shadow: inset 0 0 24px ${border}80, 0 0 34px ${border}70; }
@@ -341,49 +350,49 @@ function CardPreview({ card, cardRef, artScale, artOffsetX, artOffsetY }: {
             animation: "cardShine 5s ease-in-out infinite",
           }} />
 
-          {/* Nom + Genre + PV */}
-          <div style={{ position: "absolute", top: 18, left: 18, right: 18, zIndex: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 17, fontWeight: 900, color: "#fff", textShadow: "0 0 10px rgba(0,0,0,1), 0 1px 4px rgba(0,0,0,0.9)" }}>
-              {card.name || "Nom"}
-            </span>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-              {card.gender !== "N" && (
-                <span style={{ fontSize: 14, fontWeight: 800, color: card.gender === "M" ? "#90caf9" : "#f48fb1", textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}>
-                  {card.gender === "M" ? "♂" : "♀"}
+          {/* Nom + Genre + PV + Types + Attaques — masqués pour CHROMATIQUE / RAINBOW */}
+          {!isPureArt && (
+            <>
+              <div style={{ position: "absolute", top: 18, left: 18, right: 18, zIndex: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 17, fontWeight: 900, color: "#fff", textShadow: "0 0 10px rgba(0,0,0,1), 0 1px 4px rgba(0,0,0,0.9)" }}>
+                  {card.name || "Nom"}
                 </span>
-              )}
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>PV</span>
-              <span style={{ fontSize: 21, fontWeight: 900, color: "#fff", lineHeight: 1, textShadow: "0 0 8px rgba(0,0,0,1)" }}>{card.hp}</span>
-              {card.characterTypes[0] && <EnergyBadge type={card.characterTypes[0]} size={21} />}
-            </div>
-          </div>
-
-          {/* Types supplémentaires */}
-          {card.characterTypes.length > 1 && (
-            <div style={{ position: "absolute", top: 48, left: 18, zIndex: 4, display: "flex", gap: 3 }}>
-              {card.characterTypes.slice(1).map((t) => <EnergyBadge key={t} type={t} size={17} />)}
-            </div>
-          )}
-
-          {/* Attaques */}
-          <div style={{ position: "absolute", bottom: 68, left: 16, right: 16, zIndex: 4 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              {card.attacks.map((atk, i) =>
-                (atk.name || atk.damage) ? (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
-                      {atk.cost.map((t, j) => <EnergyBadge key={j} type={t} size={15} />)}
-                      {atk.cost.length === 0 && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>—</span>}
-                    </div>
-                    <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.9)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {atk.name || `Attaque ${i + 1}`}
+                <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                  {card.gender !== "N" && (
+                    <span style={{ fontSize: 14, fontWeight: 800, color: card.gender === "M" ? "#90caf9" : "#f48fb1", textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}>
+                      {card.gender === "M" ? "♂" : "♀"}
                     </span>
-                    <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", textShadow: "0 1px 3px rgba(0,0,0,0.9)", flexShrink: 0 }}>{atk.damage}</span>
-                  </div>
-                ) : null
+                  )}
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>PV</span>
+                  <span style={{ fontSize: 21, fontWeight: 900, color: "#fff", lineHeight: 1, textShadow: "0 0 8px rgba(0,0,0,1)" }}>{card.hp}</span>
+                  {card.characterTypes[0] && <EnergyBadge type={card.characterTypes[0]} size={21} />}
+                </div>
+              </div>
+              {card.characterTypes.length > 1 && (
+                <div style={{ position: "absolute", top: 48, left: 18, zIndex: 4, display: "flex", gap: 3 }}>
+                  {card.characterTypes.slice(1).map((t) => <EnergyBadge key={t} type={t} size={17} />)}
+                </div>
               )}
-            </div>
-          </div>
+              <div style={{ position: "absolute", bottom: 68, left: 16, right: 16, zIndex: 4 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  {card.attacks.map((atk, i) =>
+                    (atk.name || atk.damage) ? (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                          {atk.cost.map((t, j) => <EnergyBadge key={j} type={t} size={15} />)}
+                          {atk.cost.length === 0 && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>—</span>}
+                        </div>
+                        <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.9)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {atk.name || `Attaque ${i + 1}`}
+                        </span>
+                        <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", textShadow: "0 1px 3px rgba(0,0,0,0.9)", flexShrink: 0 }}>{atk.damage}</span>
+                      </div>
+                    ) : null
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Contour animé au-dessus de l'image */}
           {card.rarity === "RAINBOW"
@@ -435,7 +444,42 @@ function CardPreview({ card, cardRef, artScale, artOffsetX, artOffsetY }: {
               }} />
           }
 
-          <CardBottom card={card} border="rgba(255,255,255,0.5)" textColor="#fff" subColor="rgba(255,255,255,0.65)" />
+          {isPureArt ? (
+            <>
+              {/* Nom positionnable librement */}
+              <div style={{
+                position: "absolute",
+                top: `${card.namePosY}%`,
+                left: `${card.namePosX}%`,
+                zIndex: 4,
+                maxWidth: "88%",
+                transform: card.nameAlign === "center" ? "translateX(-50%)" : card.nameAlign === "right" ? "translateX(-100%)" : "none",
+              }}>
+                <span style={{
+                  display: "block",
+                  fontSize: card.nameSize,
+                  fontWeight: 900,
+                  color: card.nameColor,
+                  fontFamily: card.nameFont,
+                  textAlign: card.nameAlign,
+                  textShadow: `0 0 18px rgba(0,0,0,1), 0 2px 8px rgba(0,0,0,0.95), 0 0 30px ${card.nameColor}55`,
+                  whiteSpace: "nowrap",
+                  lineHeight: 1.1,
+                  letterSpacing: "0.02em",
+                }}>
+                  {card.name || "Nom"}
+                </span>
+              </div>
+              {/* Numéro fixe bas-droite */}
+              <div style={{ position: "absolute", bottom: 9, right: 12, zIndex: 4 }}>
+                <span style={{ fontSize: 8, color: "rgba(255,255,255,0.38)", letterSpacing: 0.4 }}>
+                  {card.cardNumber.padStart(3, "0")}/{card.totalCards.padStart(3, "0")}
+                </span>
+              </div>
+            </>
+          ) : (
+            <CardBottom card={card} border="rgba(255,255,255,0.5)" textColor="#fff" subColor="rgba(255,255,255,0.65)" />
+          )}
         </div>
       </>
     );
@@ -533,6 +577,8 @@ export default function CardEditorPage() {
     weaknesses: [], resistances: [],
     collection: "BLACK_VS_WHITE", cardNumber: "001", totalCards: "032",
     isSecret: false,
+    nameFont: "system-ui, sans-serif", nameColor: "#ffffff",
+    namePosX: 5, namePosY: 85, nameAlign: "left", nameSize: 18,
   });
   const [draftW,     setDraftW]     = useState({ type: "", mult: "×2" });
   const [draftR,     setDraftR]     = useState({ type: "", val: "-30" });
@@ -549,6 +595,7 @@ export default function CardEditorPage() {
   const [resetMsg,   setResetMsg]   = useState<string | null>(null);
 
   const set = (patch: Partial<CardData>) => setCard((c) => ({ ...c, ...patch }));
+  const isPureArt = card.rarity === "CHROMATIQUE" || card.rarity === "RAINBOW";
 
   const syncAdminCollection = async () => {
     setSyncing(true);
@@ -859,16 +906,18 @@ export default function CardEditorPage() {
           </select>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <div><p style={lbl}>Sexe</p>
-            <select value={card.gender} onChange={(e) => set({ gender: e.target.value as Gender })} style={sel}>
-              <option value="M">♂ Masculin</option><option value="F">♀ Féminin</option><option value="N">Non précisé</option>
-            </select>
+        {!isPureArt && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div><p style={lbl}>Sexe</p>
+              <select value={card.gender} onChange={(e) => set({ gender: e.target.value as Gender })} style={sel}>
+                <option value="M">♂ Masculin</option><option value="F">♀ Féminin</option><option value="N">Non précisé</option>
+              </select>
+            </div>
+            <div><p style={lbl}>PV</p>
+              <input type="number" value={card.hp} min={10} max={999} step={10} onChange={(e) => set({ hp: Number(e.target.value) })} style={inp} />
+            </div>
           </div>
-          <div><p style={lbl}>PV</p>
-            <input type="number" value={card.hp} min={10} max={999} step={10} onChange={(e) => set({ hp: Number(e.target.value) })} style={inp} />
-          </div>
-        </div>
+        )}
 
         <div><p style={lbl}>Illustration</p>
           <button onClick={uploadArt} style={{ width: "100%", padding: "8px 0", borderRadius: 7, cursor: "pointer", fontSize: 12, background: card.artSrc ? "rgba(124,58,237,0.15)" : "rgba(255,255,255,0.04)", border: "1px dashed rgba(255,255,255,0.18)", color: card.artSrc ? "#c4b5fd" : "#aaa", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
@@ -923,9 +972,83 @@ export default function CardEditorPage() {
           </div>
         )}
 
-        <div><p style={lbl}>Type(s) du personnage</p><EnergyPicker selected={card.characterTypes} onToggle={toggleType} /></div>
+        {/* ── Nom stylisé (pure-art uniquement) ── */}
+        {isPureArt && (
+          <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
+            <p style={lbl}>Nom — style &amp; position</p>
 
-        {([0, 1] as const).map((i) => (
+            {/* Police */}
+            <div style={{ marginBottom: 10 }}>
+              <p style={{ ...lbl, marginBottom: 4 }}>Police</p>
+              <select value={card.nameFont} onChange={(e) => set({ nameFont: e.target.value })} style={sel}>
+                <option value="system-ui, sans-serif">Défaut</option>
+                <option value="'Cinzel', serif">Cinzel — antique / épique</option>
+                <option value="'Orbitron', sans-serif">Orbitron — sci-fi</option>
+                <option value="'Bebas Neue', sans-serif">Bebas Neue — impact</option>
+                <option value="'Playfair Display', serif">Playfair Display — luxe</option>
+                <option value="'Rajdhani', sans-serif">Rajdhani — tech</option>
+                <option value="'Permanent Marker', cursive">Permanent Marker — graffiti</option>
+              </select>
+            </div>
+
+            {/* Couleur + taille */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+              <div>
+                <p style={{ ...lbl, marginBottom: 4 }}>Couleur</p>
+                <input
+                  type="color"
+                  value={card.nameColor}
+                  onChange={(e) => set({ nameColor: e.target.value })}
+                  style={{ width: "100%", height: 34, borderRadius: 6, border: "1px solid rgba(255,255,255,0.08)", background: "none", cursor: "pointer", padding: 2 }}
+                />
+              </div>
+              <div>
+                <p style={{ ...lbl, marginBottom: 4 }}>Taille : {card.nameSize}px</p>
+                <input
+                  type="range" min={10} max={42} step={1}
+                  value={card.nameSize}
+                  onChange={(e) => set({ nameSize: Number(e.target.value) })}
+                  style={{ width: "100%", marginTop: 8, accentColor: "#7c3aed", cursor: "pointer" }}
+                />
+              </div>
+            </div>
+
+            {/* Position X */}
+            <div style={{ marginBottom: 6 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                <span style={{ fontSize: 10, color: "#777" }}>Position X</span>
+                <span style={{ fontSize: 10, color: "#aaa" }}>{card.namePosX}%</span>
+              </div>
+              <input type="range" min={0} max={90} step={1} value={card.namePosX} onChange={(e) => set({ namePosX: Number(e.target.value) })} style={{ width: "100%", accentColor: "#7c3aed", cursor: "pointer" }} />
+            </div>
+
+            {/* Position Y */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                <span style={{ fontSize: 10, color: "#777" }}>Position Y</span>
+                <span style={{ fontSize: 10, color: "#aaa" }}>{card.namePosY}%</span>
+              </div>
+              <input type="range" min={3} max={92} step={1} value={card.namePosY} onChange={(e) => set({ namePosY: Number(e.target.value) })} style={{ width: "100%", accentColor: "#7c3aed", cursor: "pointer" }} />
+            </div>
+
+            {/* Alignement */}
+            <div style={{ display: "flex", gap: 4 }}>
+              {(["left", "center", "right"] as const).map((a) => (
+                <button key={a} onClick={() => set({ nameAlign: a })} style={{
+                  flex: 1, padding: "5px 0", borderRadius: 6, border: "none", cursor: "pointer",
+                  background: card.nameAlign === a ? "rgba(124,58,237,0.5)" : "rgba(255,255,255,0.06)",
+                  color: card.nameAlign === a ? "#c4b5fd" : "#666", fontSize: 10, fontWeight: 600,
+                }}>
+                  {a === "left" ? "◀ Gauche" : a === "center" ? "Centre" : "Droite ▶"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!isPureArt && <div><p style={lbl}>Type(s) du personnage</p><EnergyPicker selected={card.characterTypes} onToggle={toggleType} /></div>}
+
+        {!isPureArt && ([0, 1] as const).map((i) => (
           <div key={i} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
             <p style={lbl}>Attaque {i + 1}</p>
             <div style={{ display: "flex", gap: 6, marginBottom: 7 }}>
@@ -938,7 +1061,7 @@ export default function CardEditorPage() {
         ))}
 
         {/* ── Faiblesses ── */}
-        <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
+        {!isPureArt && <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
           <p style={lbl}>Faiblesses</p>
           {card.weaknesses.map((w, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
@@ -958,10 +1081,10 @@ export default function CardEditorPage() {
             <input value={draftW.mult} onChange={(e) => setDraftW((d) => ({ ...d, mult: e.target.value }))} placeholder="×2" style={{ ...inp, width: 44, textAlign: "center", fontSize: 11 }} />
             <button onClick={addWeakness} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "rgba(124,58,237,0.4)", color: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 700 }}>+</button>
           </div>
-        </div>
+        </div>}
 
         {/* ── Résistances ── */}
-        <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
+        {!isPureArt && <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
           <p style={lbl}>Résistances</p>
           {card.resistances.map((r, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
@@ -981,7 +1104,7 @@ export default function CardEditorPage() {
             <input value={draftR.val} onChange={(e) => setDraftR((d) => ({ ...d, val: e.target.value }))} placeholder="-30" style={{ ...inp, width: 44, textAlign: "center", fontSize: 11 }} />
             <button onClick={addResistance} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "rgba(124,58,237,0.4)", color: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 700 }}>+</button>
           </div>
-        </div>
+        </div>}
 
         <div><p style={lbl}>Collection &amp; Numéro</p>
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
