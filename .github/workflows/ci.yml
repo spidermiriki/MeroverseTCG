@@ -7,8 +7,8 @@ on:
     branches: ["main"]
 
 jobs:
-  typecheck:
-    name: Type check & build
+  verifications:
+    name: Type check, lint & build
     runs-on: ubuntu-latest
 
     steps:
@@ -31,3 +31,61 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: "postgresql://fake:fake@localhost:5432/fake"
+          NEXTAUTH_SECRET: "ci-fake-secret-32-chars-minimum!!"
+          NEXTAUTH_URL: "http://localhost:3000"
+
+  fichiers-proteges:
+    name: Fichiers protégés
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Vérifier les fichiers protégés
+        env:
+          LABEL_AUTORISE: "editeur-autorise"
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          # Liste des fichiers/dossiers protégés
+          PROTECTED_PATTERNS=(
+            "app/(admin)/admin/card-editor"
+            "app/api/admin"
+            "prisma/schema.prisma"
+            "prisma/migrations"
+          )
+
+          # Vérifier si le label d'autorisation est présent
+          if echo "$PR_LABELS" | grep -q "$LABEL_AUTORISE"; then
+            echo "Label '$LABEL_AUTORISE' détecté — vérification ignorée."
+            exit 0
+          fi
+
+          # Récupérer les fichiers modifiés dans cette PR
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "Fichiers modifiés :"
+          echo "$CHANGED"
+
+          # Vérifier si un fichier protégé est touché
+          FOUND=0
+          for pattern in "${PROTECTED_PATTERNS[@]}"; do
+            if echo "$CHANGED" | grep -q "$pattern"; then
+              echo "ERREUR : fichier protégé modifié → $pattern"
+              FOUND=1
+            fi
+          done
+
+          if [ "$FOUND" -eq 1 ]; then
+            echo ""
+            echo "Pour modifier ces fichiers, ajoutez le label '$LABEL_AUTORISE' à la PR."
+            exit 1
+          fi
+
+          echo "Aucun fichier protégé modifié."
