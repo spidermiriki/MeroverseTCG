@@ -87,6 +87,12 @@ NEXTAUTH_URL       # URL publique (ex: https://meroverse.vercel.app)
 
 ---
 
+## Commits
+
+Ne jamais ajouter de ligne `Co-Authored-By:` dans les messages de commit.
+
+---
+
 ## Points d'attention
 
 1. **Pas de middleware d'auth** — les pages `(app)/` ne sont pas protégées côté serveur. Les routes API font le check `isAdmin`.
