@@ -5,10 +5,11 @@ on:
     branches: ["main", "chore/**", "feat/**"]
   pull_request:
     branches: ["main"]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 jobs:
   verifications:
-    name: Type check, lint & build
+    name: verifications
     runs-on: ubuntu-latest
 
     steps:
@@ -40,7 +41,7 @@ jobs:
           NEXTAUTH_URL: "http://localhost:3000"
 
   fichiers-proteges:
-    name: Fichiers protégés
+    name: fichiers-proteges
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
 
@@ -84,15 +85,11 @@ jobs:
           # --- schema.prisma : bloquer seulement si le bloc model Card a changé ---
           if echo "$CHANGED" | grep -q "prisma/schema.prisma"; then
             extract_card_block() {
-              # Extrait le bloc "model Card { ... }" depuis le fichier passé en stdin
               awk '/^model Card \{/{found=1} found{print} found && /^\}/{found=0}' "$1"
             }
 
-            # Version base (origin/main)
             git show "${BASE_REF}:prisma/schema.prisma" > /tmp/schema_base.prisma
             extract_card_block /tmp/schema_base.prisma > /tmp/card_block_base.txt
-
-            # Version PR (HEAD)
             extract_card_block prisma/schema.prisma > /tmp/card_block_head.txt
 
             if ! diff -q /tmp/card_block_base.txt /tmp/card_block_head.txt > /dev/null 2>&1; then
