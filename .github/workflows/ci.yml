@@ -54,33 +54,55 @@ jobs:
           LABEL_AUTORISE: "editeur-autorise"
           PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
         run: |
-          # Liste des fichiers/dossiers protégés
-          PROTECTED_PATTERNS=(
-            "app/(admin)/admin/card-editor"
-            "app/api/admin"
-            "prisma/schema.prisma"
-            "prisma/migrations"
-          )
+          BASE_REF="origin/${{ github.base_ref }}"
 
-          # Vérifier si le label d'autorisation est présent
+          # --- Label bypass ---
           if echo "$PR_LABELS" | grep -q "$LABEL_AUTORISE"; then
             echo "Label '$LABEL_AUTORISE' détecté — vérification ignorée."
             exit 0
           fi
 
-          # Récupérer les fichiers modifiés dans cette PR
-          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          CHANGED=$(git diff --name-only "${BASE_REF}...HEAD")
           echo "Fichiers modifiés :"
           echo "$CHANGED"
-
-          # Vérifier si un fichier protégé est touché
           FOUND=0
-          for pattern in "${PROTECTED_PATTERNS[@]}"; do
+
+          # --- Fichiers toujours bloqués (éditeur de cartes) ---
+          HARD_PATTERNS=(
+            "app/(admin)/admin/card-editor"
+            "app/api/cards"
+            "app/api/admin"
+            "lib/db.ts"
+          )
+          for pattern in "${HARD_PATTERNS[@]}"; do
             if echo "$CHANGED" | grep -q "$pattern"; then
-              echo "ERREUR : fichier protégé modifié → $pattern"
+              echo "ERREUR : fichier éditeur protégé modifié → $pattern"
               FOUND=1
             fi
           done
+
+          # --- schema.prisma : bloquer seulement si le bloc model Card a changé ---
+          if echo "$CHANGED" | grep -q "prisma/schema.prisma"; then
+            extract_card_block() {
+              # Extrait le bloc "model Card { ... }" depuis le fichier passé en stdin
+              awk '/^model Card \{/{found=1} found{print} found && /^\}/{found=0}' "$1"
+            }
+
+            # Version base (origin/main)
+            git show "${BASE_REF}:prisma/schema.prisma" > /tmp/schema_base.prisma
+            extract_card_block /tmp/schema_base.prisma > /tmp/card_block_base.txt
+
+            # Version PR (HEAD)
+            extract_card_block prisma/schema.prisma > /tmp/card_block_head.txt
+
+            if ! diff -q /tmp/card_block_base.txt /tmp/card_block_head.txt > /dev/null 2>&1; then
+              echo "ERREUR : le bloc 'model Card' a changé dans prisma/schema.prisma"
+              diff /tmp/card_block_base.txt /tmp/card_block_head.txt || true
+              FOUND=1
+            else
+              echo "OK : schema.prisma modifié mais le bloc 'model Card' est inchangé."
+            fi
+          fi
 
           if [ "$FOUND" -eq 1 ]; then
             echo ""
