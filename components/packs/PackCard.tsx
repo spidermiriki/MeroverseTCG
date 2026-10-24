@@ -2,7 +2,7 @@
 
 import { ChevronRight, Zap } from "lucide-react";
 import { PackVisual } from "./PackVisual";
-import { MAX_FREE_PACKS } from "@/lib/pack-odds";
+import { MAX_ENERGY } from "@/lib/pack-odds";
 
 interface Pack {
   id: string;
@@ -75,7 +75,7 @@ export function PackCard({ pack, freePackCount, onClick }: PackCardProps) {
 
         {/* Accumulation progress bar */}
         <div style={{ display: "flex", gap: 2 }}>
-          {[...Array(MAX_FREE_PACKS)].map((_, i) => (
+          {[...Array(MAX_ENERGY)].map((_, i) => (
             <div
               key={i}
               style={{

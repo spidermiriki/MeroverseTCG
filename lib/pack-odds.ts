@@ -40,25 +40,21 @@ export function rollRarity(): Rarity {
   return "COMMUN";
 }
 
-export const FREE_PACK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
-export const MAX_FREE_PACKS = 10;
+export const ENERGY_INTERVAL_MS = 67 * 60 * 1000; // 67 minutes
+export const MAX_ENERGY = 10;
 
-export function getAvailablePackCount(lastFreePack: Date | null): number {
-  if (!lastFreePack) return MAX_FREE_PACKS;
-  const elapsed = Date.now() - lastFreePack.getTime();
-  return Math.min(MAX_FREE_PACKS, Math.floor(elapsed / FREE_PACK_INTERVAL_MS));
+export function getAvailableEnergy(energyCount: number, lastEnergyTick: Date): number {
+  const elapsed = Date.now() - lastEnergyTick.getTime();
+  const regenerated = Math.floor(elapsed / ENERGY_INTERVAL_MS);
+  return Math.min(MAX_ENERGY, energyCount + regenerated);
 }
 
-export function canOpenFreePack(lastFreePack: Date | null): boolean {
-  return getAvailablePackCount(lastFreePack) > 0;
-}
-
-export function getNextFreePackTime(lastFreePack: Date | null): Date | null {
-  if (!lastFreePack) return null;
-  const count = getAvailablePackCount(lastFreePack);
-  if (count >= MAX_FREE_PACKS) return null; // already full
-  // Next pack = base + (count + 1) hours
-  return new Date(lastFreePack.getTime() + (count + 1) * FREE_PACK_INTERVAL_MS);
+export function getNextEnergyTime(energyCount: number, lastEnergyTick: Date): Date | null {
+  const actual = getAvailableEnergy(energyCount, lastEnergyTick);
+  if (actual >= MAX_ENERGY) return null;
+  const elapsed = Date.now() - lastEnergyTick.getTime();
+  const regenerated = Math.floor(elapsed / ENERGY_INTERVAL_MS);
+  return new Date(lastEnergyTick.getTime() + (regenerated + 1) * ENERGY_INTERVAL_MS);
 }
 
 export const COLLECTION_LABELS: Record<string, string> = {

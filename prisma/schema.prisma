@@ -1,32 +1,82 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED") // connexion directe non-poolée requise par prisma migrate
 }
 
-model User {
-  id           String    @id @default(cuid())
-  username     String    @unique
-  email        String    @unique
-  password     String
-  melocoins    Int       @default(100)
-  theme        String    @default("dark")
-  soundEnabled Boolean   @default(true)
-  lastFreePack DateTime?
-  isAdmin      Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+// ─────────────────────────────────────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────────────────────────────────────
 
-  userCards     UserCard[]
-  tradeOffers   TradeOffer[]   @relation("offerer")
-  tradeBids     TradeBid[]
-  confirmations TradeConfirmation[]
+model User {
+  id              String    @id @default(cuid())
+  username        String    @unique
+  email           String    @unique
+  password        String
+  coins           Int       @default(0)                    // monnaie premium (boosters payants, enchères)
+  orbs            Int       @default(0)                    // monnaie GRATUITE gagnée via les doublons, sert aux cosmétiques
+  level           Int       @default(1)
+  xp              Int       @default(0)
+  avatarUrl       String?
+  onboardingDone  Boolean   @default(false)
+  theme           String    @default("black-vs-white")
+  themeCollection String?                                  // collection active au moment du choix de thème
+  soundEnabled    Boolean   @default(true)
+  isAdmin         Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Énergie (remplace lastFreePack)
+  energyCount    Int      @default(10)    // disponible à lastEnergyTick ; calcul = min(10, n + ⌊(now−tick)/67min⌋)
+  lastEnergyTick DateTime @default(now())
+
+  // ── Collection ──────────────────────────────────────────────────────────────
+  userCards  UserCard[]
+  favorites  FavoriteCard[]
+  badges     UserBadge[]
+  cosmetics  UserCosmetic[]
+
+  // ── Échanges ────────────────────────────────────────────────────────────────
+  sentTrades      TradeOffer[]       @relation("offerer")
+  receivedTrades  TradeOffer[]       @relation("tradeRecipient")
+  confirmations   TradeConfirmation[]
+
+  // ── Enchères ────────────────────────────────────────────────────────────────
+  auctions          Auction[]    @relation("auctionSeller")
+  wonAuctions       Auction[]    @relation("auctionHighestBidder")
+  auctionBids       AuctionBid[]
+
+  // ── Amitié ──────────────────────────────────────────────────────────────────
+  sentFriendRequests     Friendship[] @relation("friendRequester")
+  receivedFriendRequests Friendship[] @relation("friendAddressee")
+
+  // ── Groupes ─────────────────────────────────────────────────────────────────
+  groupMemberships       GroupMember[]
+  groupMessages          GroupMessage[]
+  groupJoinRequests      GroupJoinRequest[]
+  groupInvitesSent       GroupInvite[]  @relation("groupInviteSent")
+  groupInvitesReceived   GroupInvite[]  @relation("groupInviteReceived")
+  groupRequestsMade      GroupRequest[] @relation("groupRequestMaker")
+  groupRequestsTargeted  GroupRequest[] @relation("groupRequestTarget")
+  groupRequestsDecided   GroupRequest[] @relation("groupRequestDecider")
+  groupBans              GroupBan[]     @relation("groupBanned")
+  groupBansIssued        GroupBan[]     @relation("groupBanner")
+
+  // ── Messagerie ───────────────────────────────────────────────────────────────
+  sentMessages     DirectMessage[] @relation("dmSender")
+  receivedMessages DirectMessage[] @relation("dmReceiver")
+
+  // ── Cadeaux ──────────────────────────────────────────────────────────────────
+  sentGifts     Gift[] @relation("giftSender")
+  receivedGifts Gift[] @relation("giftReceiver")
+
+  // ── Misc ────────────────────────────────────────────────────────────────────
+  notifications Notification[]
+  bugReports    BugReport[]
 }
 
 model Card {
@@ -59,9 +109,15 @@ model Card {
   userCards      UserCard[]
   tradeOffered   TradeOffer[] @relation("offeredCard")
   tradeRequested TradeOffer[] @relation("requestedCard")
+  auctions       Auction[]
+  gifts          Gift[]
 
   @@unique([collection, number])
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USER CARD
+// ─────────────────────────────────────────────────────────────────────────────
 
 model UserCard {
   id         String   @id @default(cuid())
@@ -70,52 +126,107 @@ model UserCard {
   quantity   Int      @default(1)
   obtainedAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card      Card           @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  favorites FavoriteCard[]
 
   @@unique([userId, cardId])
+  @@index([userId])
+  @@index([cardId])
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PACK — inchangé
+// ─────────────────────────────────────────────────────────────────────────────
 
 model Pack {
   id          String  @id @default(cuid())
   name        String
-  collection  String  // BLACK_VS_WHITE
-  price       Int     // in Melocoins
+  collection  String
+  price       Int
   imageUrl    String  @default("/placeholders/pack-placeholder.svg")
   isAvailable Boolean @default(true)
   cardsCount  Int     @default(5)
   description String?
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FAVORIS (showcase 3 cartes sur le profil)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model FavoriteCard {
+  id         String @id @default(cuid())
+  userId     String
+  userCardId String
+  position   Int                        // 1, 2 ou 3
+
+  user     User     @relation(fields: [userId],     references: [id], onDelete: Cascade)
+  userCard UserCard @relation(fields: [userCardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, position])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BADGES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  badgeKey String                        // ex: "first_pack", "collector_10"
+  earnedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeKey])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COSMÉTIQUES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model UserCosmetic {
+  id          String   @id @default(cuid())
+  userId      String
+  cosmeticKey String                        // ex: "frame_gold", "bg_space"
+  acquiredAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cosmeticKey])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ÉCHANGES CARTE-CONTRE-CARTE (privés, entre amis)
+// ─────────────────────────────────────────────────────────────────────────────
+
 model TradeOffer {
   id              String    @id @default(cuid())
   offererId       String
   offeredCardId   String
-  type            String    // CARD_FOR_CARD | AUCTION
   requestedCardId String?
-  minimumPrice    Int?
-  status          String    @default("OPEN") // OPEN | PENDING | COMPLETED | CANCELLED
+  recipientId     String                              // obligatoire : échange uniquement vers un ami précis
+  status          String    @default("EN_ATTENTE")    // EN_ATTENTE | VU | ACCEPTE | REFUSE | ANNULE | EXPIRE
+  seenAt          DateTime?
+  expiresAt       DateTime                            // création + 48 h (calculé côté serveur)
+  counterOfId     String?                             // auto-relation : contre-offre vers l'offre d'origine
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  offerer       User  @relation("offerer", fields: [offererId], references: [id], onDelete: Cascade)
-  offeredCard   Card  @relation("offeredCard", fields: [offeredCardId], references: [id], onDelete: Cascade)
-  requestedCard Card? @relation("requestedCard", fields: [requestedCardId], references: [id], onDelete: SetNull)
-
-  bids          TradeBid[]
+  offerer       User       @relation("offerer",        fields: [offererId],       references: [id], onDelete: Cascade)
+  recipient     User       @relation("tradeRecipient", fields: [recipientId],     references: [id], onDelete: Cascade)
+  offeredCard   Card       @relation("offeredCard",    fields: [offeredCardId],   references: [id], onDelete: Cascade)
+  requestedCard Card?      @relation("requestedCard",  fields: [requestedCardId], references: [id], onDelete: SetNull)
+  counterOf     TradeOffer?  @relation("counterOffer", fields: [counterOfId],     references: [id], onDelete: SetNull)
+  counterOffers TradeOffer[] @relation("counterOffer")
   confirmations TradeConfirmation[]
-}
 
-model TradeBid {
-  id           String   @id @default(cuid())
-  tradeOfferId String
-  bidderId     String
-  amount       Int
-  status       String   @default("PENDING") // PENDING | ACCEPTED | REJECTED
-  createdAt    DateTime @default(now())
-
-  tradeOffer TradeOffer @relation(fields: [tradeOfferId], references: [id], onDelete: Cascade)
-  bidder     User       @relation(fields: [bidderId], references: [id], onDelete: Cascade)
+  @@index([offererId])
+  @@index([recipientId])
+  @@index([status])
 }
 
 model TradeConfirmation {
@@ -126,7 +237,273 @@ model TradeConfirmation {
   createdAt    DateTime @default(now())
 
   tradeOffer TradeOffer @relation(fields: [tradeOfferId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId],       references: [id], onDelete: Cascade)
 
   @@unique([tradeOfferId, userId])
+  @@index([tradeOfferId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENCHÈRES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Auction {
+  id              String    @id @default(cuid())
+  sellerId        String
+  cardId          String                               // carte sous séquestre (quantity décrémentée à la mise en vente)
+  startPrice      Int
+  currentBid      Int?
+  highestBidderId String?
+  endsAt          DateTime
+  status          String    @default("EN_COURS")       // EN_COURS | VENDUE | EXPIREE | ANNULEE
+  claimedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  seller        User       @relation("auctionSeller",        fields: [sellerId],        references: [id], onDelete: Cascade)
+  card          Card       @relation(fields: [cardId],        references: [id],          onDelete: Cascade)
+  highestBidder User?      @relation("auctionHighestBidder", fields: [highestBidderId], references: [id], onDelete: SetNull)
+  bids          AuctionBid[]
+
+  @@index([sellerId])
+  @@index([cardId])
+  @@index([highestBidderId])
+  @@index([status])
+}
+
+model AuctionBid {
+  id        String   @id @default(cuid())
+  auctionId String
+  bidderId  String
+  amount    Int
+  status    String   @default("ACTIVE")  // ACTIVE | SURENCHERIE | REMBOURSEE | GAGNANTE
+  createdAt DateTime @default(now())
+
+  auction Auction @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  bidder  User    @relation(fields: [bidderId],  references: [id], onDelete: Cascade)
+
+  @@index([auctionId])
+  @@index([bidderId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AMITIÉ
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      String   @default("PENDING")  // PENDING | ACCEPTED | DECLINED | BLOCKED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requester User @relation("friendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("friendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId])
+  @@index([addresseeId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GROUPES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  emblemColor String?
+  access      String   @default("TOUT_LE_MONDE")  // TOUT_LE_MONDE | SUR_DEMANDE | SUR_INVITATION
+  maxMembers  Int      @default(20)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members      GroupMember[]
+  messages     GroupMessage[]
+  joinRequests GroupJoinRequest[]
+  invites      GroupInvite[]
+  requests     GroupRequest[]
+  bans         GroupBan[]
+}
+
+model GroupMember {
+  id       String   @id @default(cuid())
+  groupId  String
+  userId   String
+  role     String   @default("MEMBRE")  // CHEF | CHEF_ADJOINT | AINE | MEMBRE (un seul CHEF — garanti côté code)
+  joinedAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId],  references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+}
+
+model GroupJoinRequest {
+  id        String   @id @default(cuid())
+  groupId   String
+  userId    String
+  status    String   @default("PENDING")  // PENDING | ACCEPTED | DECLINED
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId],  references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+}
+
+model GroupInvite {
+  id        String   @id @default(cuid())
+  groupId   String
+  inviterId String
+  inviteeId String
+  status    String   @default("PENDING")  // PENDING | ACCEPTED | DECLINED | EXPIRED
+  createdAt DateTime @default(now())
+
+  group   Group @relation(fields: [groupId],   references: [id], onDelete: Cascade)
+  inviter User  @relation("groupInviteSent",     fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee User  @relation("groupInviteReceived", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, inviteeId])
+  @@index([groupId])
+  @@index([inviteeId])
+}
+
+model GroupMessage {
+  id        String   @id @default(cuid())
+  groupId   String
+  senderId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  group  Group @relation(fields: [groupId],  references: [id], onDelete: Cascade)
+  sender User  @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([senderId])
+}
+
+model GroupRequest {
+  id           String   @id @default(cuid())
+  groupId      String
+  requesterId  String                              // auteur de la demande (AINE ou plus) ; le CHEF agit directement sans demande
+  targetUserId String
+  type         String                              // PROMOTION | RETROGRADATION | EXCLUSION
+  targetRole   String?
+  status       String   @default("EN_ATTENTE")     // EN_ATTENTE | ACCEPTEE | REFUSEE
+  decidedById  String?
+  createdAt    DateTime @default(now())
+
+  group      Group  @relation(fields: [groupId],      references: [id], onDelete: Cascade)
+  requester  User   @relation("groupRequestMaker",    fields: [requesterId],  references: [id], onDelete: Cascade)
+  targetUser User   @relation("groupRequestTarget",   fields: [targetUserId], references: [id], onDelete: Cascade)
+  decidedBy  User?  @relation("groupRequestDecider",  fields: [decidedById],  references: [id], onDelete: SetNull)
+
+  @@index([groupId])
+  @@index([requesterId])
+  @@index([targetUserId])
+}
+
+model GroupBan {
+  id         String   @id @default(cuid())
+  groupId    String
+  userId     String
+  bannedById String
+  createdAt  DateTime @default(now())
+
+  group    Group @relation(fields: [groupId],    references: [id], onDelete: Cascade)
+  user     User  @relation("groupBanned", fields: [userId],     references: [id], onDelete: Cascade)
+  bannedBy User  @relation("groupBanner", fields: [bannedById], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MESSAGES DIRECTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DirectMessage {
+  id         String    @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  sender   User @relation("dmSender",   fields: [senderId],   references: [id], onDelete: Cascade)
+  receiver User @relation("dmReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CADEAUX
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Gift {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  cardId     String                           // carte offerte (FK vers Card, pas UserCard)
+  message    String?
+  status     String   @default("PENDING")     // PENDING | ACCEPTED | DECLINED
+  createdAt  DateTime @default(now())
+
+  // Séquestre : quantity décrémentée à l'envoi côté API ; recréditée si DECLINED
+  sender   User @relation("giftSender",   fields: [senderId],   references: [id], onDelete: Cascade)
+  receiver User @relation("giftReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  card     Card @relation(fields: [cardId], references: [id],   onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([cardId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String    // FRIEND_REQUEST | TRADE | GIFT | GROUP_INVITE | GROUP_MESSAGE | AUCTION | SYSTEM
+  title     String
+  body      String?
+  readAt    DateTime?
+  data      Json?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BUG REPORTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model BugReport {
+  id            String   @id @default(cuid())
+  reporterId    String
+  category      String                        // BOOSTERS | COLLECTION | ECHANGES | MARCHE | GROUPE | PAIEMENT | AUTRE
+  description   String
+  screenshotUrl String?
+  deviceInfo    Json?
+  status        String   @default("OPEN")     // OPEN | IN_PROGRESS | RESOLVED | WONT_FIX
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
+  @@index([status])
 }

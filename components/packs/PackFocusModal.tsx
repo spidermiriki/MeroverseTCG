@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { X, Zap, Lock, Coins } from "lucide-react";
 import { PackVisual } from "./PackVisual";
 import { formatTimeUntil } from "@/lib/utils";
-import { MAX_FREE_PACKS } from "@/lib/pack-odds";
+import { MAX_ENERGY } from "@/lib/pack-odds";
 
 interface Pack {
   id: string;
@@ -20,7 +20,7 @@ interface PackFocusModalProps {
   pack: Pack;
   freePackCount: number;
   nextFreeTime: Date | null;
-  melocoins: number;
+  coins: number;
   onOpenFree: () => void;
   onOpenPaid: () => void;
   onClose: () => void;
@@ -31,13 +31,13 @@ export function PackFocusModal({
   pack,
   freePackCount,
   nextFreeTime,
-  melocoins,
+  coins,
   onOpenFree,
   onOpenPaid,
   onClose,
   loading,
 }: PackFocusModalProps) {
-  const canAfford = melocoins >= pack.price;
+  const canAfford = coins >= pack.price;
   const hasFree = freePackCount > 0;
 
   return (
@@ -171,13 +171,13 @@ export function PackFocusModal({
               </span>
             </div>
             <span style={{ fontSize: 14, fontWeight: 900, color: hasFree ? "#a3e635" : "rgba(192,132,252,0.35)" }}>
-              {freePackCount}<span style={{ fontWeight: 400, fontSize: 12, opacity: 0.6 }}>/{MAX_FREE_PACKS}</span>
+              {freePackCount}<span style={{ fontWeight: 400, fontSize: 12, opacity: 0.6 }}>/{MAX_ENERGY}</span>
             </span>
           </div>
 
           {/* Progress segments */}
           <div style={{ display: "flex", gap: 3 }}>
-            {[...Array(MAX_FREE_PACKS)].map((_, i) => (
+            {[...Array(MAX_ENERGY)].map((_, i) => (
               <div
                 key={i}
                 style={{
@@ -198,7 +198,7 @@ export function PackFocusModal({
               Prochain booster dans {formatTimeUntil(nextFreeTime)}
             </p>
           )}
-          {freePackCount === MAX_FREE_PACKS && (
+          {freePackCount === MAX_ENERGY && (
             <p style={{ fontSize: 11, color: "#a3e635", textAlign: "center", marginTop: 2, opacity: 0.7 }}>
               Stock plein — ouvre vite !
             </p>

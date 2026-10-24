@@ -15,10 +15,11 @@ export async function GET() {
       id: true,
       username: true,
       email: true,
-      melocoins: true,
+      coins: true,
       theme: true,
       soundEnabled: true,
-      lastFreePack: true,
+      energyCount: true,
+      lastEnergyTick: true,
       isAdmin: true,
     },
   });

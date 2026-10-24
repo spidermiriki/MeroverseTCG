@@ -8,7 +8,6 @@ async function main() {
 
   // Clear existing data
   await prisma.tradeConfirmation.deleteMany();
-  await prisma.tradeBid.deleteMany();
   await prisma.tradeOffer.deleteMany();
   await prisma.userCard.deleteMany();
   await prisma.pack.deleteMany();
@@ -24,7 +23,7 @@ async function main() {
       username: "Gary",
       email: "gary@meroverse.com",
       password: adminPassword,
-      melocoins: 9999,
+      coins: 9999,
       isAdmin: true,
     },
   });
