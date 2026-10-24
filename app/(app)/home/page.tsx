@@ -6,7 +6,7 @@ import { Zap, Lock, Coins } from "lucide-react";
 import { PackVisual } from "@/components/packs/PackVisual";
 import { PackOpeningModal } from "@/components/packs/PackOpeningModal";
 import { MelocoinBadge } from "@/components/ui/MelocoinBadge";
-import { getAvailablePackCount, getNextFreePackTime, MAX_FREE_PACKS } from "@/lib/pack-odds";
+import { getAvailableEnergy, getNextEnergyTime, MAX_ENERGY } from "@/lib/pack-odds";
 import { formatTimeUntil } from "@/lib/utils";
 
 interface Pack {
@@ -19,8 +19,9 @@ interface Pack {
 }
 
 interface UserData {
-  melocoins: number;
-  lastFreePack: string | null;
+  coins: number;
+  energyCount: number;
+  lastEnergyTick: string;
 }
 
 interface Card {
@@ -74,12 +75,12 @@ export default function HomePage() {
     }
   };
 
-  const lastFreePack = userData?.lastFreePack ? new Date(userData.lastFreePack) : null;
-  const freePackCount = getAvailablePackCount(lastFreePack);
-  const nextFreeTime = getNextFreePackTime(lastFreePack);
+  const lastEnergyTick = userData ? new Date(userData.lastEnergyTick) : new Date();
+  const freePackCount = userData ? getAvailableEnergy(userData.energyCount, lastEnergyTick) : 0;
+  const nextFreeTime = userData ? getNextEnergyTime(userData.energyCount, lastEnergyTick) : null;
   const hasFree = freePackCount > 0;
   const pack = packs[0] ?? null;
-  const canAfford = userData ? userData.melocoins >= (pack?.price ?? 0) : false;
+  const canAfford = userData ? userData.coins >= (pack?.price ?? 0) : false;
 
   return (
     <div
@@ -115,7 +116,7 @@ export default function HomePage() {
             Ouvre des packs et complète ta collection
           </p>
         </div>
-        {userData && <MelocoinBadge amount={userData.melocoins} />}
+        {userData && <MelocoinBadge amount={userData.coins} />}
       </div>
 
       {/* ── Center: pack showcase ── */}
@@ -174,7 +175,7 @@ export default function HomePage() {
                 zIndex: 1,
               }}
             >
-              {[...Array(MAX_FREE_PACKS)].map((_, i) => (
+              {[...Array(MAX_ENERGY)].map((_, i) => (
                 <div
                   key={i}
                   style={{
@@ -222,7 +223,7 @@ export default function HomePage() {
                       color: "rgba(163,230,53,0.8)",
                     }}
                   >
-                    {freePackCount}/{MAX_FREE_PACKS}
+                    {freePackCount}/{MAX_ENERGY}
                   </span>
                 </>
               ) : (

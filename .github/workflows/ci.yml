@@ -37,6 +37,7 @@ jobs:
         run: npm run build
         env:
           DATABASE_URL: "postgresql://fake:fake@localhost:5432/fake"
+          DATABASE_URL_UNPOOLED: "postgresql://fake:fake@localhost:5432/fake"
           NEXTAUTH_SECRET: "ci-fake-secret-32-chars-minimum!!"
           NEXTAUTH_URL: "http://localhost:3000"
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { rollRarity, getAvailablePackCount, FREE_PACK_INTERVAL_MS } from "@/lib/pack-odds";
+import { rollRarity, getAvailableEnergy, ENERGY_INTERVAL_MS, MAX_ENERGY } from "@/lib/pack-odds";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -21,16 +21,16 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Utilisateur introuvable." }, { status: 404 });
 
   if (isFree) {
-    if (getAvailablePackCount(user.lastFreePack) === 0) {
+    const actualEnergy = getAvailableEnergy(user.energyCount, user.lastEnergyTick);
+    if (actualEnergy === 0) {
       return NextResponse.json({ error: "Aucun booster accumulé pour l'instant." }, { status: 400 });
     }
   } else {
-    if (user.melocoins < pack.price) {
-      return NextResponse.json({ error: "Melocoins insuffisants." }, { status: 400 });
+    if (user.coins < pack.price) {
+      return NextResponse.json({ error: "Coins insuffisants." }, { status: 400 });
     }
   }
 
-  // Get all cards in this collection grouped by rarity
   const allCards = await prisma.card.findMany({
     where: { collection: pack.collection },
   });
@@ -45,42 +45,37 @@ export async function POST(req: NextRequest) {
     cardsByRarity[card.rarity].push(card);
   }
 
-  // Roll cards
   const drawnCards: (typeof allCards)[0][] = [];
   for (let i = 0; i < pack.cardsCount; i++) {
     let rarity = rollRarity();
-
-    // Fallback: if no card exists for that rarity, use COMMUN
     while (!cardsByRarity[rarity] || cardsByRarity[rarity].length === 0) {
       rarity = "COMMUN";
     }
-
     const rarityCards = cardsByRarity[rarity];
-    const card = rarityCards[Math.floor(Math.random() * rarityCards.length)];
-    drawnCards.push(card);
+    drawnCards.push(rarityCards[Math.floor(Math.random() * rarityCards.length)]);
   }
 
-  // Update user inventory and melocoins in a transaction
   await prisma.$transaction(async (tx) => {
-    // Deduct coins or consume 1 accumulated free pack
     if (isFree) {
-      // Recalculate inside transaction to stay consistent
-      const available = getAvailablePackCount(user.lastFreePack);
-      // After opening, remaining = available - 1
-      // Set lastFreePack so that floor((now - last) / 1h) = available - 1
-      const newLastFreePack = new Date(Date.now() - (available - 1) * FREE_PACK_INTERVAL_MS);
+      const actualEnergy = getAvailableEnergy(user.energyCount, user.lastEnergyTick);
+      const elapsed = Date.now() - user.lastEnergyTick.getTime();
+      const regenerated = Math.floor(elapsed / ENERGY_INTERVAL_MS);
+      // Store consumed state: spent 1, tick reset to now so next regen starts from here
+      const remaining = Math.min(MAX_ENERGY, actualEnergy) - 1;
       await tx.user.update({
         where: { id: user.id },
-        data: { lastFreePack: newLastFreePack },
+        data: {
+          energyCount: remaining,
+          lastEnergyTick: new Date(user.lastEnergyTick.getTime() + regenerated * ENERGY_INTERVAL_MS),
+        },
       });
     } else {
       await tx.user.update({
         where: { id: user.id },
-        data: { melocoins: { decrement: pack.price } },
+        data: { coins: { decrement: pack.price } },
       });
     }
 
-    // Add cards to user's collection
     for (const card of drawnCards) {
       await tx.userCard.upsert({
         where: { userId_cardId: { userId: user.id, cardId: card.id } },

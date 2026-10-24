@@ -81,12 +81,17 @@ NEXTAUTH_URL       # URL publique (ex: https://meroverse.vercel.app)
 
 ## Schéma de données (résumé)
 
-- **User** — id, username, email, password, melocoins, isAdmin, theme
+- **User** — id, username, email, password, coins (premium), orbs (gratuit/doublons), level, xp, energyCount, lastEnergyTick, onboardingDone, theme, avatarUrl, isAdmin
 - **Card** — id, number, name, rarity, collection, imageUrl, isSecret + stats jeu (hp, attacks, etc.)
 - **UserCard** — userId, cardId, quantity *(unique par paire)*
 - **Pack** — id, name, collection, price, cardsCount
-- **TradeOffer** — type CARD_FOR_CARD | AUCTION, status OPEN|PENDING|COMPLETED|CANCELLED
-- **TradeBid / TradeConfirmation** — enchères et confirmations d'échange
+- **TradeOffer** — offererId, recipientId (obligatoire), offeredCardId, requestedCardId?, expiresAt, status EN_ATTENTE|VU|ACCEPTE|REFUSE|ANNULE|EXPIRE
+- **TradeConfirmation** — confirmations d'échange (double validation)
+- **Auction / AuctionBid** — enchères séparées des échanges directs
+- **Friendship / Group*** — système social (GroupMember, GroupRequest, GroupBan, etc.)
+- **Gift** — cadeaux carte→carte (cardId FK vers Card, séquestre quantity)
+- **FavoriteCard / UserBadge / UserCosmetic** — profil enrichi
+- **DirectMessage / Notification / BugReport** — messagerie et support
 
 ---
 
@@ -117,6 +122,7 @@ Ne jamais ajouter de ligne `Co-Authored-By:` dans les messages de commit.
 ## Points d'attention
 
 1. **Middleware d'auth** — `middleware.ts` protège les routes `(app)/` via `withAuth` de NextAuth. Matcher : `/home`, `/collection`, `/exchange`, `/settings`, `/shop`, `/group`, `/admin/**`, `/dev/**`. La page `/login` reste publique.
-2. **`prisma db push` uniquement** — pas de migrations versionnées pour l'instant.
+2. **`prisma migrate deploy`** — les migrations versionnées sont dans `prisma/migrations/`. Ne plus utiliser `prisma db push` sur la prod ; utiliser `prisma migrate deploy` (automatique via `vercel.json` buildCommand).
 3. **RAINBOW absent de `RARITY_WEIGHTS`** dans `lib/pack-odds.ts` — ne peut pas tomber en booster (voulu).
-4. **Stripe non implémenté** — la boutique Melocoins est un stub.
+4. **Stripe non implémenté** — la boutique Coins est un stub.
+5. **⚠ Ne jamais appeler `/api/admin/reset-collection` en production** — cette route fait une cascade sur les collections, les enchères et les favoris. Réservée aux environnements de test uniquement.
