@@ -102,8 +102,8 @@ export function SpaceBackground() {
           maxWidth: 300,
           maxHeight: 300,
           borderRadius: "50%",
-          background: "radial-gradient(circle at 35% 35%, rgba(109,40,217,0.12), rgba(29,78,216,0.06) 60%, transparent 80%)",
-          border: "1px solid rgba(109,40,217,0.1)",
+          background: "radial-gradient(circle at 35% 35%, var(--color-nebula-1), var(--color-nebula-2) 60%, transparent 80%)",
+          border: "1px solid rgb(var(--accent) / 0.10)",
           pointerEvents: "none",
         }}
       />
@@ -119,8 +119,8 @@ export function SpaceBackground() {
           maxWidth: 180,
           maxHeight: 180,
           borderRadius: "50%",
-          background: "radial-gradient(circle at 60% 40%, rgba(236,72,153,0.08), rgba(109,40,217,0.05) 60%, transparent 80%)",
-          border: "1px solid rgba(236,72,153,0.08)",
+          background: "radial-gradient(circle at 60% 40%, var(--color-nebula-3), var(--color-nebula-1) 60%, transparent 80%)",
+          border: "1px solid rgb(var(--accent-3) / 0.08)",
           pointerEvents: "none",
         }}
       />

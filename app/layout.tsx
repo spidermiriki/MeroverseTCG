@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Unbounded, Inter, Work_Sans } from "next/font/google";
+import { Unbounded, Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
@@ -12,12 +12,6 @@ const unbounded = Unbounded({
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
-  display: "swap",
-});
-
-const workSans = Work_Sans({
-  subsets: ["latin"],
-  variable: "--font-work-sans",
   display: "swap",
 });
 
@@ -35,7 +29,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${unbounded.variable} ${inter.variable} ${workSans.variable}`}>
+    <html lang="fr" className={`${unbounded.variable} ${inter.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

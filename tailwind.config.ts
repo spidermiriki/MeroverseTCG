@@ -9,22 +9,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Fond & surfaces
-        "mv-bg":         "#0a1419",
-        "mv-surface":    "rgba(18,33,41,0.78)",
-        "mv-surface-2":  "rgba(24,43,52,0.78)",
-        "mv-tab-bar":    "rgba(14,26,32,0.88)",
-        // Bordures
-        "mv-border":     "#223944",
-        // Accents
-        "mv-orange":     "#ea4316",
-        "mv-red":        "#f9232f",
-        "mv-cyan":       "#6ddcfd",
-        // Texte
-        "mv-text":       "#eef7fa",
-        "mv-muted":      "#8fa9b5",
-        "mv-dark":       "#1d3545",
-        // Raretés
+        // Fond & surfaces (fixes)
+        "mv-bg":        "#0a1419",
+        "mv-surface":   "rgba(18,33,41,0.78)",
+        "mv-surface-2": "rgba(24,43,52,0.78)",
+        "mv-tab-bar":   "rgba(14,26,32,0.88)",
+        "mv-border":    "#223944",
+        // Texte (fixes)
+        "mv-text":      "#eef7fa",
+        "mv-muted":     "#8fa9b5",
+        "mv-dark":      "#1d3545",
+        // Accents — pointent vers les CSS vars de thème
+        // Supports bg-mv-accent, bg-mv-accent/50, text-mv-accent, etc.
+        "mv-accent":  "rgb(var(--accent)  / <alpha-value>)",
+        "mv-accent2": "rgb(var(--accent-2) / <alpha-value>)",
+        "mv-accent3": "rgb(var(--accent-3) / <alpha-value>)",
+        // Raretés (fixes)
         "rarity-commun":      "#94a3b8",
         "rarity-rare":        "#60a5fa",
         "rarity-epique":      "#c084fc",
@@ -34,10 +34,9 @@ const config: Config = {
         "rarity-rainbow":     "#ffffff",
       },
       fontFamily: {
-        unbounded:   ["var(--font-unbounded)",  "sans-serif"],
-        inter:       ["var(--font-inter)",      "sans-serif"],
-        "work-sans": ["var(--font-work-sans)",  "sans-serif"],
-        sans:        ["var(--font-inter)",      "system-ui", "sans-serif"],
+        unbounded: ["var(--font-unbounded)", "sans-serif"],
+        inter:     ["var(--font-inter)",     "sans-serif"],
+        sans:      ["var(--font-inter)",     "system-ui", "sans-serif"],
       },
       borderRadius: {
         "mv-card": "20px",

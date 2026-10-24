@@ -24,13 +24,34 @@ Routes API associées — également protégées :
 
 ---
 
+## Thèmes
+
+Le système de thèmes est basé sur des variables CSS par `[data-theme="..."]` sur `<html>`.
+
+| Thème | Slug | Accent principal | Usage |
+|---|---|---|---|
+| Black vs White | `black-vs-white` | `#ea4316` orange | Collection en cours (défaut) |
+| Classique | `classique` | `#a37bff` violet | Future collection |
+| Gary | `gary` | `#ffc83d` or | Future collection |
+| Ginsa | `ginsa` | `#8e96a6` gris | Future collection |
+
+**Règle :** le thème par défaut suit la collection en cours. `COLLECTION_THEME` dans `components/theme-provider.tsx` est la source de vérité. Changer de collection = mettre à jour `COLLECTION_THEME`.
+
+Les variables CSS exposées par chaque thème :
+- `--accent` / `--accent-2` / `--accent-3` : RGB séparés par espaces (pour Tailwind `bg-mv-accent/50`)
+- `--color-accent` / `--color-accent-2` / `--color-accent-3` : hex (pour `box-shadow`, `gradient`, etc.)
+- `--color-nebula-1/2/3` : couleurs rgba pour le fond étoilé (SpaceBackground)
+
+**Page dev :** `/dev/composants` — affiche tous les composants UI dans les 4 thèmes.
+
+---
+
 ## Branches
 
 | Branche | Rôle |
 |---|---|
 | `main` | Base stable — merge via PR uniquement |
-| `feat/collection` | Onglet collection (actif) |
-| `chore/securisation` | Phase 0 — sécurisation du dépôt |
+| `refonte/fondations` | Phase 1 — fondations visuelles |
 
 Les branches vides sont supprimées. Les états archivés sont dans les tags `legacy-*`.
 
@@ -95,7 +116,7 @@ Ne jamais ajouter de ligne `Co-Authored-By:` dans les messages de commit.
 
 ## Points d'attention
 
-1. **Pas de middleware d'auth** — les pages `(app)/` ne sont pas protégées côté serveur. Les routes API font le check `isAdmin`.
+1. **Middleware d'auth** — `middleware.ts` protège les routes `(app)/` via `withAuth` de NextAuth. Matcher : `/home`, `/collection`, `/exchange`, `/settings`, `/shop`, `/group`, `/admin/**`, `/dev/**`. La page `/login` reste publique.
 2. **`prisma db push` uniquement** — pas de migrations versionnées pour l'instant.
 3. **RAINBOW absent de `RARITY_WEIGHTS`** dans `lib/pack-odds.ts` — ne peut pas tomber en booster (voulu).
 4. **Stripe non implémenté** — la boutique Melocoins est un stub.
