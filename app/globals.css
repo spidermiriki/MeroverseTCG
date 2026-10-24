@@ -3,106 +3,95 @@
 @tailwind utilities;
 
 /* ============================================================
-   THEME VARIABLES
+   BASE — variables fixes (ne changent pas avec le thème)
    ============================================================ */
 
-:root,
-[data-theme="dark"] {
-  --color-background: #02020a;
-  --color-surface: rgba(10, 12, 30, 0.75);
-  --color-surface-2: rgba(15, 18, 45, 0.8);
-  --color-surface-solid: #0a0c1e;
-  --color-primary: #6d28d9;
-  --color-primary-hover: #5b21b6;
-  --color-primary-glow: rgba(109, 40, 217, 0.4);
-  --color-secondary: #1d4ed8;
-  --color-accent: #f59e0b;
-  --color-accent-glow: rgba(245, 158, 11, 0.3);
-  --color-nebula-1: rgba(109, 40, 217, 0.15);
-  --color-nebula-2: rgba(29, 78, 216, 0.1);
-  --color-nebula-3: rgba(236, 72, 153, 0.08);
-  --color-text: #e2e8f9;
-  --color-text-muted: #7b8aad;
-  --color-border: rgba(109, 40, 217, 0.25);
-  --color-border-bright: rgba(109, 40, 217, 0.6);
-  --color-success: #22c55e;
-  --color-danger: #ef4444;
-  --color-rarity-commun: #94a3b8;
-  --color-rarity-rare: #60a5fa;
-  --color-rarity-epique: #c084fc;
-  --color-rarity-mythique: #fb923c;
-  --color-rarity-legendaire: #fbbf24;
+:root {
+  /* Fond & surfaces */
+  --color-background:  #0a1419;
+  --color-surface:     rgba(18, 33, 41, 0.78);
+  --color-surface-2:   rgba(24, 43, 52, 0.78);
+  --color-tab-bar:     rgba(14, 26, 32, 0.88);
+  /* Bordures */
+  --color-border:      #223944;
+  --color-border-bright: #3a5a6e;
+  /* Texte */
+  --color-text:        #eef7fa;
+  --color-muted:       #8fa9b5;
+  --color-dark:        #1d3545;
+  /* Utilitaires */
+  --color-success:     #22c55e;
+  --color-danger:      #ef4444;
+  /* Étoiles */
+  --star-color:        rgba(255, 255, 255, 0.7);
+  /* Raretés (invariantes par thème) */
+  --color-rarity-commun:      #94a3b8;
+  --color-rarity-rare:        #60a5fa;
+  --color-rarity-epique:      #c084fc;
+  --color-rarity-mythique:    #fb923c;
+  --color-rarity-legendaire:  #fbbf24;
   --color-rarity-chromatique: #f472b6;
-  --star-color: rgba(255, 255, 255, 0.8);
 }
 
-[data-theme="light"] {
-  --color-background: #f0f4ff;
-  --color-surface: rgba(255, 255, 255, 0.85);
-  --color-surface-2: rgba(240, 244, 255, 0.9);
-  --color-surface-solid: #ffffff;
-  --color-primary: #6d28d9;
-  --color-primary-hover: #5b21b6;
-  --color-primary-glow: rgba(109, 40, 217, 0.3);
-  --color-secondary: #1d4ed8;
-  --color-accent: #d97706;
-  --color-accent-glow: rgba(217, 119, 6, 0.3);
-  --color-nebula-1: rgba(109, 40, 217, 0.08);
-  --color-nebula-2: rgba(29, 78, 216, 0.06);
-  --color-nebula-3: rgba(236, 72, 153, 0.04);
-  --color-text: #0f172a;
-  --color-text-muted: #475569;
-  --color-border: rgba(109, 40, 217, 0.2);
-  --color-border-bright: rgba(109, 40, 217, 0.5);
-  --color-success: #16a34a;
-  --color-danger: #dc2626;
-  --star-color: rgba(109, 40, 217, 0.4);
+/* ============================================================
+   THÈMES — accents + nébuleuses (varient par collection)
+
+   Convention :
+     --accent     : RGB séparés par espaces (pour Tailwind opacity)
+     --color-accent : valeur hex (pour box-shadow, gradients, etc.)
+   ============================================================ */
+
+/* BLACK VS WHITE — défaut (collection en cours) */
+:root,
+[data-theme="black-vs-white"] {
+  --accent:          234 67 22;    /* #ea4316 orange */
+  --accent-2:        249 35 47;    /* #f9232f rouge */
+  --accent-3:        109 220 253;  /* #6ddcfd cyan */
+  --color-accent:    #ea4316;
+  --color-accent-2:  #f9232f;
+  --color-accent-3:  #6ddcfd;
+  --color-nebula-1:  rgba(234, 67, 22, 0.08);
+  --color-nebula-2:  rgba(109, 220, 253, 0.06);
+  --color-nebula-3:  rgba(249, 35, 47, 0.05);
 }
 
-[data-theme="violet"] {
-  --color-background: #06020f;
-  --color-surface: rgba(18, 8, 35, 0.8);
-  --color-surface-2: rgba(28, 12, 55, 0.85);
-  --color-surface-solid: #120823;
-  --color-primary: #a855f7;
-  --color-primary-hover: #9333ea;
-  --color-primary-glow: rgba(168, 85, 247, 0.4);
-  --color-secondary: #7c3aed;
-  --color-accent: #e879f9;
-  --color-accent-glow: rgba(232, 121, 249, 0.3);
-  --color-nebula-1: rgba(168, 85, 247, 0.2);
-  --color-nebula-2: rgba(124, 58, 237, 0.12);
-  --color-nebula-3: rgba(232, 121, 249, 0.1);
-  --color-text: #faf5ff;
-  --color-text-muted: #c4b5fd;
-  --color-border: rgba(168, 85, 247, 0.3);
-  --color-border-bright: rgba(168, 85, 247, 0.7);
-  --color-success: #22c55e;
-  --color-danger: #ef4444;
-  --star-color: rgba(232, 121, 249, 0.7);
+/* CLASSIQUE — violet */
+[data-theme="classique"] {
+  --accent:          163 123 255;  /* #a37bff */
+  --accent-2:        112 65 224;   /* #7041e0 */
+  --accent-3:        163 123 255;
+  --color-accent:    #a37bff;
+  --color-accent-2:  #7041e0;
+  --color-accent-3:  #a37bff;
+  --color-nebula-1:  rgba(163, 123, 255, 0.10);
+  --color-nebula-2:  rgba(112, 65, 224, 0.07);
+  --color-nebula-3:  rgba(163, 123, 255, 0.05);
 }
 
-[data-theme="gold"] {
-  --color-background: #050300;
-  --color-surface: rgba(20, 14, 2, 0.8);
-  --color-surface-2: rgba(35, 25, 5, 0.85);
-  --color-surface-solid: #140e02;
-  --color-primary: #d97706;
-  --color-primary-hover: #b45309;
-  --color-primary-glow: rgba(217, 119, 6, 0.4);
-  --color-secondary: #ca8a04;
-  --color-accent: #fbbf24;
-  --color-accent-glow: rgba(251, 191, 36, 0.3);
-  --color-nebula-1: rgba(217, 119, 6, 0.15);
-  --color-nebula-2: rgba(202, 138, 4, 0.1);
-  --color-nebula-3: rgba(251, 191, 36, 0.08);
-  --color-text: #fffbeb;
-  --color-text-muted: #d4a94a;
-  --color-border: rgba(217, 119, 6, 0.3);
-  --color-border-bright: rgba(217, 119, 6, 0.6);
-  --color-success: #22c55e;
-  --color-danger: #ef4444;
-  --star-color: rgba(251, 191, 36, 0.7);
+/* GARY — doré */
+[data-theme="gary"] {
+  --accent:          255 200 61;   /* #ffc83d */
+  --accent-2:        224 154 18;   /* #e09a12 */
+  --accent-3:        255 200 61;
+  --color-accent:    #ffc83d;
+  --color-accent-2:  #e09a12;
+  --color-accent-3:  #ffc83d;
+  --color-nebula-1:  rgba(255, 200, 61, 0.08);
+  --color-nebula-2:  rgba(224, 154, 18, 0.06);
+  --color-nebula-3:  rgba(255, 200, 61, 0.04);
+}
+
+/* GINSA — gris */
+[data-theme="ginsa"] {
+  --accent:          142 150 166;  /* #8e96a6 */
+  --accent-2:        100 110 130;  /* #646e82 */
+  --accent-3:        142 150 166;
+  --color-accent:    #8e96a6;
+  --color-accent-2:  #646e82;
+  --color-accent-3:  #8e96a6;
+  --color-nebula-1:  rgba(142, 150, 166, 0.06);
+  --color-nebula-2:  rgba(100, 110, 130, 0.04);
+  --color-nebula-3:  rgba(142, 150, 166, 0.03);
 }
 
 /* ============================================================
@@ -130,9 +119,9 @@ html, body {
   z-index: 0;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 80% 50% at 20% 10%, var(--color-nebula-1) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 80%, var(--color-nebula-2) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 60% at 60% 40%, var(--color-nebula-3) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 45% at 20% 10%, var(--color-nebula-1) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 40% at 80% 75%, var(--color-nebula-2) 0%, transparent 60%),
+    radial-gradient(ellipse 45% 55% at 60% 40%, var(--color-nebula-3) 0%, transparent 60%),
     var(--color-background);
   pointer-events: none;
 }
@@ -171,24 +160,32 @@ html, body {
 
 .glass {
   background: var(--color-surface) !important;
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
   border: 1px solid var(--color-border) !important;
 }
 
-.glass-bright {
+.glass-2 {
   background: var(--color-surface-2) !important;
-  backdrop-filter: blur(20px) saturate(200%);
-  -webkit-backdrop-filter: blur(20px) saturate(200%);
-  border: 1px solid var(--color-border-bright) !important;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  border: 1px solid var(--color-border) !important;
 }
 
 /* ============================================================
-   GLOW EFFECTS
+   GLOW EFFECTS — theme-aware
    ============================================================ */
 
-.glow-primary {
-  box-shadow: 0 0 20px var(--color-primary-glow), 0 0 40px var(--color-primary-glow);
+.glow-accent {
+  box-shadow:
+    0 0 20px rgb(var(--accent) / 0.45),
+    0 0 40px rgb(var(--accent) / 0.20);
+}
+
+.glow-accent3 {
+  box-shadow:
+    0 0 20px rgb(var(--accent-3) / 0.45),
+    0 0 40px rgb(var(--accent-3) / 0.20);
 }
 
 /* ============================================================
@@ -213,27 +210,45 @@ html, body {
 }
 
 .card-rarity-legendaire {
-  border-color: var(--color-rarity-legendaire) !important;
-  box-shadow: 0 0 28px rgba(251, 191, 36, 0.8), 0 0 60px rgba(251, 191, 36, 0.35), inset 0 0 30px rgba(251, 191, 36, 0.15);
-  animation: legendaire-pulse 2s ease-in-out infinite;
+  /* Géré par le wrapper gradient dans CardFrame — classe conservée pour usage direct */
+  border-color: #ffc83d !important;
 }
 
 .card-rarity-chromatique {
-  border-color: var(--color-rarity-chromatique) !important;
-  box-shadow: 0 0 22px rgba(244, 114, 182, 0.8), 0 0 50px rgba(244, 114, 182, 0.35);
-  animation: chromatic-shift 4s linear infinite;
+  border-color: #ff6ad5 !important;
 }
 
-@keyframes legendaire-pulse {
-  0%, 100% { box-shadow: 0 0 28px rgba(251,191,36,0.8), 0 0 60px rgba(251,191,36,0.35); }
-  50%       { box-shadow: 0 0 40px rgba(251,191,36,1),   0 0 80px rgba(251,191,36,0.55); }
+.card-rarity-rainbow {
+  border-color: #fff !important;
 }
 
-@keyframes chromatic-shift {
-  0%   { filter: hue-rotate(0deg);   box-shadow: 0 0 22px rgba(244,114,182,0.8); }
-  33%  { filter: hue-rotate(120deg); box-shadow: 0 0 22px rgba(114,182,244,0.8); }
-  66%  { filter: hue-rotate(240deg); box-shadow: 0 0 22px rgba(182,244,114,0.8); }
-  100% { filter: hue-rotate(360deg); box-shadow: 0 0 22px rgba(244,114,182,0.8); }
+/* Animation glow Légendaire — appliquée sur le wrapper, pas la carte entière */
+.card-glow-legendaire {
+  animation: legendaire-glow 2s ease-in-out infinite;
+}
+
+@keyframes legendaire-glow {
+  0%, 100% { box-shadow: 0 0 28px rgba(255,200,61,0.8),  0 0 60px rgba(255,200,61,0.35); }
+  50%       { box-shadow: 0 0 40px rgba(255,200,61,1),    0 0 80px rgba(255,200,61,0.55); }
+}
+
+@keyframes chromatic-glow {
+  0%   { box-shadow: 0 0 22px rgba(255,106,213,0.8), 0 0 50px rgba(177,77,255,0.4); }
+  50%  { box-shadow: 0 0 32px rgba(177,77,255,0.9),  0 0 60px rgba(255,106,213,0.5); }
+  100% { box-shadow: 0 0 22px rgba(255,106,213,0.8), 0 0 50px rgba(177,77,255,0.4); }
+}
+
+.card-glow-chromatique {
+  animation: chromatic-glow 3s ease-in-out infinite;
+}
+
+.card-glow-rainbow {
+  animation: rainbow-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes rainbow-glow {
+  0%, 100% { box-shadow: 0 0 30px rgba(255,255,255,0.65), 0 0 60px rgba(255,255,255,0.3); }
+  50%       { box-shadow: 0 0 45px rgba(255,255,255,0.9),  0 0 90px rgba(255,255,255,0.5); }
 }
 
 @keyframes holoShift {
@@ -275,20 +290,21 @@ html, body {
 }
 
 /* ============================================================
-   COSMIC BUTTON
+   BOUTON ACCENT — theme-aware
    ============================================================ */
 
-.btn-cosmic {
+.btn-accent {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
   color: #fff;
   font-weight: 700;
-  border-radius: 0.75rem;
+  border-radius: 100px;
   transition: all 0.2s ease;
+  box-shadow: 0 8px 18px rgb(var(--accent) / 0.35);
 }
 
-.btn-cosmic::before {
+.btn-accent::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -296,21 +312,51 @@ html, body {
   pointer-events: none;
 }
 
-.btn-cosmic:active { transform: scale(0.97); }
+.btn-accent:active { transform: scale(0.97); }
 
-/* ============================================================
-   TYPOGRAPHY
-   ============================================================ */
-
-.text-gradient {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* Variante ghost — fond sombre semi-transparent, pas de couleur accent */
+.btn-ghost {
+  position: relative;
+  background: rgba(10, 20, 25, 0.60);
+  color: #eef7fa;
+  font-weight: 600;
+  border-radius: 100px;
+  border: 1.5px solid var(--color-border);
+  transition: all 0.2s ease;
 }
 
-.text-gradient-cosmic {
-  background: linear-gradient(135deg, #c084fc 0%, #60a5fa 50%, #f472b6 100%);
+.btn-ghost:active { transform: scale(0.97); opacity: 0.8; }
+
+/* Variante gold */
+.btn-gold {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ffc83d 0%, #e09a12 100%);
+  color: #1d3545;
+  font-weight: 700;
+  border-radius: 100px;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 18px rgba(255,200,61,0.35);
+}
+
+.btn-gold:active { transform: scale(0.97); }
+
+/* États désactivés — toutes variantes */
+.btn-accent:disabled,
+.btn-ghost:disabled,
+.btn-gold:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* ============================================================
+   TYPOGRAPHY GRADIENTS
+   ============================================================ */
+
+.text-gradient-accent {
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
