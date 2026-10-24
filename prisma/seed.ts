@@ -16,7 +16,9 @@ async function main() {
   await prisma.user.deleteMany();
 
   // Create admin user (Gary - the creator)
-  const adminPassword = await bcrypt.hash("admin123", 10);
+  const rawPassword = process.env.ADMIN_SEED_PASSWORD;
+  if (!rawPassword) throw new Error("ADMIN_SEED_PASSWORD env var is required to seed");
+  const adminPassword = await bcrypt.hash(rawPassword, 10);
   await prisma.user.create({
     data: {
       username: "Gary",

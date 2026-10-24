@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Home, Star, Bell } from "lucide-react";
+import { Star } from "lucide-react";
 import {
   Button,
   Pill,
@@ -10,7 +10,6 @@ import {
   Toggle,
   SectionLabel,
   Avatar,
-  Overlay,
   Popup,
   BottomSheet,
   EmptyState,

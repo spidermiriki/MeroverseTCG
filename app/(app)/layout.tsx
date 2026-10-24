@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { BottomNav } from "@/components/navbar/BottomNav";
 import { SpaceBackground } from "@/components/SpaceBackground";
-import { ThemeProvider, COLLECTION_THEME, type Theme } from "@/components/theme-provider";
+import { ThemeProvider, COLLECTION_THEME } from "@/components/theme-provider";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
