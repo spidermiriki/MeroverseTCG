@@ -33,8 +33,8 @@ export function Toggle({ checked, onChange, disabled = false, className, label }
           "relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2",
         )}
         style={{
-          background: checked ? "var(--color-accent)" : "var(--color-border)",
-          boxShadow: checked ? "0 0 8px rgb(var(--accent) / 0.4)" : "none",
+          background: (!disabled && checked) ? "var(--color-accent)" : "var(--color-border)",
+          boxShadow:  (!disabled && checked) ? "0 0 8px rgb(var(--accent) / 0.4)" : "none",
         }}
       >
         <span

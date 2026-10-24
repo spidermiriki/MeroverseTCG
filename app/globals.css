@@ -210,43 +210,45 @@ html, body {
 }
 
 .card-rarity-legendaire {
-  border-color: var(--color-rarity-legendaire) !important;
-  box-shadow:
-    0 0 28px rgba(251, 191, 36, 0.8),
-    0 0 60px rgba(251, 191, 36, 0.35),
-    inset 0 0 30px rgba(251, 191, 36, 0.15);
-  animation: legendaire-pulse 2s ease-in-out infinite;
+  /* Géré par le wrapper gradient dans CardFrame — classe conservée pour usage direct */
+  border-color: #ffc83d !important;
 }
 
 .card-rarity-chromatique {
-  border-color: var(--color-rarity-chromatique) !important;
-  box-shadow: 0 0 22px rgba(244, 114, 182, 0.8), 0 0 50px rgba(244, 114, 182, 0.35);
-  animation: chromatic-shift 4s linear infinite;
+  border-color: #ff6ad5 !important;
 }
 
 .card-rarity-rainbow {
   border-color: #fff !important;
-  box-shadow:
-    0 0 30px rgba(255, 255, 255, 0.7),
-    0 0 60px rgba(255, 255, 255, 0.4);
-  animation: rainbow-shift 3s linear infinite;
 }
 
-@keyframes legendaire-pulse {
-  0%, 100% { box-shadow: 0 0 28px rgba(251,191,36,0.8), 0 0 60px rgba(251,191,36,0.35); }
-  50%       { box-shadow: 0 0 40px rgba(251,191,36,1),   0 0 80px rgba(251,191,36,0.55); }
+/* Animation glow Légendaire — appliquée sur le wrapper, pas la carte entière */
+.card-glow-legendaire {
+  animation: legendaire-glow 2s ease-in-out infinite;
 }
 
-@keyframes chromatic-shift {
-  0%   { filter: hue-rotate(0deg);   box-shadow: 0 0 22px rgba(244,114,182,0.8); }
-  33%  { filter: hue-rotate(120deg); box-shadow: 0 0 22px rgba(114,182,244,0.8); }
-  66%  { filter: hue-rotate(240deg); box-shadow: 0 0 22px rgba(182,244,114,0.8); }
-  100% { filter: hue-rotate(360deg); box-shadow: 0 0 22px rgba(244,114,182,0.8); }
+@keyframes legendaire-glow {
+  0%, 100% { box-shadow: 0 0 28px rgba(255,200,61,0.8),  0 0 60px rgba(255,200,61,0.35); }
+  50%       { box-shadow: 0 0 40px rgba(255,200,61,1),    0 0 80px rgba(255,200,61,0.55); }
 }
 
-@keyframes rainbow-shift {
-  0%   { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(360deg); }
+@keyframes chromatic-glow {
+  0%   { box-shadow: 0 0 22px rgba(255,106,213,0.8), 0 0 50px rgba(177,77,255,0.4); }
+  50%  { box-shadow: 0 0 32px rgba(177,77,255,0.9),  0 0 60px rgba(255,106,213,0.5); }
+  100% { box-shadow: 0 0 22px rgba(255,106,213,0.8), 0 0 50px rgba(177,77,255,0.4); }
+}
+
+.card-glow-chromatique {
+  animation: chromatic-glow 3s ease-in-out infinite;
+}
+
+.card-glow-rainbow {
+  animation: rainbow-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes rainbow-glow {
+  0%, 100% { box-shadow: 0 0 30px rgba(255,255,255,0.65), 0 0 60px rgba(255,255,255,0.3); }
+  50%       { box-shadow: 0 0 45px rgba(255,255,255,0.9),  0 0 90px rgba(255,255,255,0.5); }
 }
 
 @keyframes holoShift {
@@ -312,14 +314,14 @@ html, body {
 
 .btn-accent:active { transform: scale(0.97); }
 
-/* Variante ghost */
+/* Variante ghost — fond sombre semi-transparent, pas de couleur accent */
 .btn-ghost {
   position: relative;
-  background: transparent;
-  color: var(--color-accent);
+  background: rgba(10, 20, 25, 0.60);
+  color: #eef7fa;
   font-weight: 600;
   border-radius: 100px;
-  border: 1.5px solid var(--color-accent);
+  border: 1.5px solid var(--color-border);
   transition: all 0.2s ease;
 }
 
@@ -338,6 +340,16 @@ html, body {
 }
 
 .btn-gold:active { transform: scale(0.97); }
+
+/* États désactivés — toutes variantes */
+.btn-accent:disabled,
+.btn-ghost:disabled,
+.btn-gold:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none !important;
+  transform: none !important;
+}
 
 /* ============================================================
    TYPOGRAPHY GRADIENTS

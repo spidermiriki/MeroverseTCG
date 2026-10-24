@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +25,9 @@ function getInitial(name?: string) {
 }
 
 export function Avatar({ src, name, size = "md", className }: AvatarProps) {
+  const [imgError, setImgError] = useState(false);
   const { px, cls, text } = SIZES[size];
+  const showImage = Boolean(src) && !imgError;
 
   return (
     <div
@@ -34,17 +37,18 @@ export function Avatar({ src, name, size = "md", className }: AvatarProps) {
         className,
       )}
       style={{
-        background: src ? undefined : "var(--color-accent)",
+        background: showImage ? undefined : "var(--color-accent)",
         border: "2px solid var(--color-border)",
       }}
     >
-      {src ? (
+      {showImage ? (
         <Image
-          src={src}
+          src={src!}
           alt={name ?? "avatar"}
           width={px}
           height={px}
           className="object-cover w-full h-full"
+          onError={() => setImgError(true)}
         />
       ) : (
         <span className={cn("font-bold font-unbounded text-white", text)}>
