@@ -21,6 +21,38 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      - name: Vérifier les assets public/cards
+        run: |
+          FOUND=0
+
+          # Dossiers : doivent être entièrement en MAJUSCULES (aucune lettre minuscule)
+          for dir in public/cards/*/; do
+            dirname=$(basename "$dir")
+            if echo "$dirname" | grep -qE '[a-z]'; then
+              echo "ERREUR : dossier non-majuscule → $dirname"
+              FOUND=1
+            fi
+          done
+
+          # Fichiers : doivent respecter NNN.png (exactement 3 chiffres + .png minuscule)
+          while IFS= read -r -d '' file; do
+            filename=$(basename "$file")
+            if ! echo "$filename" | grep -qE '^[0-9]{3}\.png$'; then
+              echo "ERREUR : nom de fichier invalide → $file (attendu : NNN.png)"
+              FOUND=1
+            fi
+          done < <(find public/cards -maxdepth 2 -type f -print0)
+
+          if [ "$FOUND" -eq 1 ]; then
+            echo ""
+            echo "Règle : dossiers en MAJUSCULES, fichiers au format NNN.png."
+            echo "Un dossier en casse mixte passe localement (Windows/macOS) mais"
+            echo "provoque des 404 sur Vercel (Linux, sensible à la casse)."
+            exit 1
+          fi
+
+          echo "OK : tous les assets public/cards/ respectent les conventions de nommage."
+
       - name: Install dependencies
         run: npm ci
 
