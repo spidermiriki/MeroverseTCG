@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
+import { User, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { SpaceBackground } from "@/components/SpaceBackground";
+import { MeroverseAvatar } from "@/components/brand/MeroverseAvatar";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [form, setForm] = useState({ login: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -19,22 +20,8 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    if (mode === "register") {
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error);
-        setLoading(false);
-        return;
-      }
-    }
-
     const result = await signIn("credentials", {
-      login: mode === "login" ? form.username : form.email,
+      login: form.login,
       password: form.password,
       redirect: false,
     });
@@ -49,191 +36,123 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
-      {/* Space background */}
+    <div className="relative min-h-screen bg-mv-bg overflow-hidden flex flex-col">
       <SpaceBackground />
 
-      {/* Content */}
-      <div className="relative z-10 w-full max-w-sm flex flex-col items-center">
+      <div className="relative z-10 flex flex-col items-center pt-[92px] px-6 pb-10">
+        {/* Avatar */}
+        <MeroverseAvatar size="lg" />
 
-        {/* Logo */}
-        <div className="mb-8 text-center">
-          {/* Cosmic emblem */}
-          <div className="relative inline-flex items-center justify-center mb-4">
-            <div
-              className="absolute w-24 h-24 rounded-full blur-2xl"
-              style={{ background: "radial-gradient(circle, rgba(109,40,217,0.6), transparent 70%)" }}
-            />
-            <div
-              className="relative w-16 h-16 rounded-full flex items-center justify-center border"
-              style={{
-                background: "rgba(10,12,30,0.8)",
-                borderColor: "rgba(109,40,217,0.6)",
-                boxShadow: "0 0 24px rgba(109,40,217,0.5), inset 0 0 20px rgba(109,40,217,0.1)",
-              }}
-            >
-              <Sparkles size={28} style={{ color: "#c084fc" }} />
-            </div>
-          </div>
-
-          <h1
-            className="text-5xl font-black tracking-wider"
-            style={{
-              background: "linear-gradient(135deg, #c084fc 0%, #818cf8 40%, #f472b6 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-              textShadow: "none",
-              letterSpacing: "0.12em",
-            }}
-          >
-            MEROVERSE
-          </h1>
-          <p
-            className="text-xs tracking-widest mt-1 uppercase font-semibold"
-            style={{ color: "var(--color-text-muted)", letterSpacing: "0.3em" }}
-          >
-            Trading Card Game
-          </p>
-        </div>
-
-        {/* Card */}
-        <div
-          className="w-full rounded-2xl p-6"
-          style={{
-            background: "rgba(10,12,30,0.75)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            border: "1px solid rgba(109,40,217,0.35)",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(109,40,217,0.1) inset",
-          }}
+        {/* Titre MEROVERSE */}
+        <h1
+          className="font-unbounded font-bold text-[34px] tracking-[-0.34px] text-center mt-6"
+          style={{ textShadow: "0px 0px 24px rgba(249,35,47,0.35)" }}
         >
-          {/* Tabs */}
-          <div
-            className="flex rounded-xl mb-6 overflow-hidden p-1 gap-1"
-            style={{ background: "rgba(109,40,217,0.1)" }}
-          >
-            {(["login", "register"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => { setMode(m); setError(""); }}
-                className="flex-1 py-2 text-sm font-semibold transition-all rounded-lg"
-                style={{
-                  background: mode === m
-                    ? "linear-gradient(135deg, #6d28d9, #1d4ed8)"
-                    : "transparent",
-                  color: mode === m ? "#fff" : "var(--color-text-muted)",
-                  boxShadow: mode === m ? "0 2px 12px rgba(109,40,217,0.4)" : "none",
-                }}
-              >
-                {m === "login" ? "Connexion" : "Inscription"}
-              </button>
-            ))}
-          </div>
+          <span className="text-mv-text">MERO</span>
+          <span className="text-mv-accent">VERSE</span>
+        </h1>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold mb-1.5 block tracking-wide uppercase" style={{ color: "var(--color-text-muted)" }}>
-                {mode === "login" ? "Identifiant" : "Nom d'utilisateur"}
-              </label>
+        {/* Accroche */}
+        <h2 className="font-unbounded font-bold text-[20px] text-mv-text w-full max-w-[382px] mt-10">
+          Content de te revoir
+        </h2>
+
+        {/* Formulaire */}
+        <form
+          onSubmit={handleSubmit}
+          className="w-full max-w-[382px] flex flex-col gap-[14px] mt-[14px]"
+        >
+          {/* Pseudo ou e-mail */}
+          <div className="flex flex-col gap-[6px]">
+            <label className="text-[11px] font-semibold font-inter text-mv-muted">
+              Pseudo ou e-mail
+            </label>
+            <div className="flex items-center gap-[10px] p-[14px] rounded-[14px] border border-mv-border bg-mv-surface">
+              <User size={17} className="text-mv-muted shrink-0" />
               <input
                 type="text"
                 autoComplete="username"
                 required
-                value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                style={{
-                  background: "rgba(109,40,217,0.08)",
-                  border: "1px solid rgba(109,40,217,0.25)",
-                  color: "var(--color-text)",
-                }}
-                onFocus={(e) => e.target.style.borderColor = "rgba(109,40,217,0.7)"}
-                onBlur={(e) => e.target.style.borderColor = "rgba(109,40,217,0.25)"}
-                placeholder={mode === "login" ? "gary ou gary@example.com" : "ton_pseudo"}
+                value={form.login}
+                onChange={(e) => setForm({ ...form, login: e.target.value })}
+                placeholder="Homelo"
+                className="flex-1 bg-transparent text-[14px] font-semibold font-inter text-mv-text outline-none placeholder:text-mv-muted/50"
               />
             </div>
+          </div>
 
-            {mode === "register" && (
-              <div>
-                <label className="text-xs font-semibold mb-1.5 block tracking-wide uppercase" style={{ color: "var(--color-text-muted)" }}>
-                  Email
-                </label>
-                <input
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                  style={{
-                    background: "rgba(109,40,217,0.08)",
-                    border: "1px solid rgba(109,40,217,0.25)",
-                    color: "var(--color-text)",
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = "rgba(109,40,217,0.7)"}
-                  onBlur={(e) => e.target.style.borderColor = "rgba(109,40,217,0.25)"}
-                  placeholder="ton@email.com"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="text-xs font-semibold mb-1.5 block tracking-wide uppercase" style={{ color: "var(--color-text-muted)" }}>
-                Mot de passe
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
-                  required
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-full px-4 py-3 pr-11 rounded-xl text-sm outline-none transition-all"
-                  style={{
-                    background: "rgba(109,40,217,0.08)",
-                    border: "1px solid rgba(109,40,217,0.25)",
-                    color: "var(--color-text)",
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = "rgba(109,40,217,0.7)"}
-                  onBlur={(e) => e.target.style.borderColor = "rgba(109,40,217,0.25)"}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div
-                className="text-xs text-center px-3 py-2.5 rounded-xl"
-                style={{ background: "rgba(239,68,68,0.12)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}
+          {/* Mot de passe */}
+          <div className="flex flex-col gap-[6px]">
+            <label className="text-[11px] font-semibold font-inter text-mv-muted">
+              Mot de passe
+            </label>
+            <div className="flex items-center gap-[10px] p-[14px] rounded-[14px] border border-mv-border bg-mv-surface">
+              <Lock size={17} className="text-mv-muted shrink-0" />
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                required
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Ton mot de passe"
+                className="flex-1 bg-transparent text-[14px] font-inter text-mv-muted/80 outline-none placeholder:text-mv-muted/50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-mv-muted shrink-0"
+                aria-label={showPassword ? "Masquer" : "Afficher"}
               >
-                {error}
-              </div>
-            )}
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 active:scale-97"
-              style={{
-                background: "linear-gradient(135deg, #6d28d9 0%, #1d4ed8 100%)",
-                color: "#fff",
-                boxShadow: "0 4px 20px rgba(109,40,217,0.5)",
-              }}
+          {/* Mot de passe oublié */}
+          <div className="flex justify-end -mt-2">
+            <Link
+              href="/forgot-password"
+              className="text-[12px] font-semibold font-inter text-mv-accent"
             >
-              {loading && <Loader2 size={16} className="animate-spin" />}
-              {mode === "login" ? "Entrer dans le Meroverse" : "Rejoindre le Meroverse"}
-            </button>
-          </form>
-        </div>
+              Mot de passe oublié ?
+            </Link>
+          </div>
+
+          {/* Erreur */}
+          {error && (
+            <p className="text-[12px] font-inter text-red-400 text-center">
+              {error}
+            </p>
+          )}
+
+          {/* Bouton connexion */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-[17px] rounded-[18px] flex items-center justify-center gap-[10px] font-unbounded font-semibold text-[14px] text-white disabled:opacity-60"
+            style={{
+              background: "linear-gradient(to right, #ea4316, #f9232f)",
+              boxShadow: "0px 10px 12px rgba(234,67,22,0.45)",
+            }}
+          >
+            {loading ? (
+              <Loader2 size={17} className="animate-spin" />
+            ) : (
+              <>
+                Se connecter
+                <ArrowRight size={17} />
+              </>
+            )}
+          </button>
+
+          {/* Lien inscription */}
+          <div className="flex items-center justify-center gap-[5px] text-[12px] font-inter">
+            <span className="text-mv-muted">Pas encore de compte ?</span>
+            <Link href="/register" className="font-bold text-mv-accent">
+              {"S'inscrire"}
+            </Link>
+          </div>
+        </form>
       </div>
     </div>
   );
