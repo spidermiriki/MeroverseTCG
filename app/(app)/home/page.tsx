@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Zap, Lock, Coins } from "lucide-react";
-import { PackVisual } from "@/components/packs/PackVisual";
+import { Plus, MessageCircle, Gift, Settings, Clock } from "lucide-react";
+import { Avatar } from "@/components/ui/Avatar";
 import { PackOpeningModal } from "@/components/packs/PackOpeningModal";
-import { MelocoinBadge } from "@/components/ui/MelocoinBadge";
 import { getAvailableEnergy, getNextEnergyTime, MAX_ENERGY } from "@/lib/pack-odds";
-import { formatTimeUntil } from "@/lib/utils";
+import { cn, formatEnergyTimer } from "@/lib/utils";
 
 interface Pack {
   id: string;
@@ -22,6 +23,9 @@ interface UserData {
   coins: number;
   energyCount: number;
   lastEnergyTick: string;
+  level: number;
+  avatarUrl: string | null;
+  username: string;
 }
 
 interface Card {
@@ -33,341 +37,225 @@ interface Card {
 }
 
 export default function HomePage() {
-  const [packs, setPacks] = useState<Pack[]>([]);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [pack, setPack] = useState<Pack | null>(null);
+  const [ownedCount, setOwnedCount] = useState<number>(0);
   const [drawnCards, setDrawnCards] = useState<Card[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Tick every second for live timer re-render
+  const [, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const fetchData = useCallback(async () => {
-    const [packsRes, userRes] = await Promise.all([
-      fetch("/api/packs"),
+    const [userRes, packsRes, collectionRes] = await Promise.all([
       fetch("/api/user"),
+      fetch("/api/packs"),
+      fetch("/api/collection"),
     ]);
-    const packsData = await packsRes.json();
-    const userData = await userRes.json();
-    setPacks(packsData.packs ?? []);
-    setUserData(userData);
+    setUserData(await userRes.json());
+    const pd = await packsRes.json();
+    setPack(pd.packs?.[0] ?? null);
+    const cd = await collectionRes.json();
+    setOwnedCount(cd.stats?.owned ?? 0);
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const openPack = async (packId: string, isFree: boolean) => {
-    setLoading(true);
-    setError("");
+  const lastTick = userData ? new Date(userData.lastEnergyTick) : new Date();
+  const energy = userData ? getAvailableEnergy(userData.energyCount, lastTick) : 0;
+  const nextEnergyTime = userData ? getNextEnergyTime(userData.energyCount, lastTick) : null;
+  const isMaxEnergy = energy >= MAX_ENERGY;
+  const hasFree = energy > 0;
+  const canAfford = userData && pack ? userData.coins >= pack.price : false;
+
+  const openPack = async () => {
+    if (!pack || loading) return;
+    const isFree = hasFree;
+    if (!isFree && !canAfford) { setError("Pas assez de pièces ou d'énergie."); return; }
+    setLoading(true); setError("");
     try {
       const res = await fetch("/api/packs/open", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packId, isFree }),
+        body: JSON.stringify({ packId: pack.id, isFree }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error);
-      } else {
-        setDrawnCards(data.cards);
-        await fetchData();
-      }
-    } catch {
-      setError("Erreur réseau.");
-    } finally {
-      setLoading(false);
-    }
+      if (!res.ok) setError(data.error);
+      else { setDrawnCards(data.cards); await fetchData(); }
+    } catch { setError("Erreur réseau."); }
+    finally { setLoading(false); }
   };
 
-  const lastEnergyTick = userData ? new Date(userData.lastEnergyTick) : new Date();
-  const freePackCount = userData ? getAvailableEnergy(userData.energyCount, lastEnergyTick) : 0;
-  const nextFreeTime = userData ? getNextEnergyTime(userData.energyCount, lastEnergyTick) : null;
-  const hasFree = freePackCount > 0;
-  const pack = packs[0] ?? null;
-  const canAfford = userData ? userData.coins >= (pack?.price ?? 0) : false;
-
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* ── Top bar ── */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "16px 20px 0",
-          position: "relative",
-          zIndex: 10,
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 900,
-              color: "#e2e8f9",
-              letterSpacing: "0.02em",
-            }}
-          >
-            Boosters
-          </h1>
-          <p style={{ fontSize: 12, color: "rgba(192,132,252,0.5)", marginTop: 1 }}>
-            Ouvre des packs et complète ta collection
-          </p>
-        </div>
-        {userData && <MelocoinBadge amount={userData.coins} />}
-      </div>
-
-      {/* ── Center: pack showcase ── */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "0 24px 96px",
-          position: "relative",
-        }}
-      >
-        {pack ? (
-          <>
-            {/* Soft dark ambient surface behind everything */}
-            <div
-              style={{
-                position: "absolute",
-                width: "85vw",
-                height: "70vw",
-                maxWidth: 380,
-                maxHeight: 320,
-                borderRadius: "50%",
-                background: "radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 45%, transparent 72%)",
-                pointerEvents: "none",
-              }}
-            />
-
-            {/* Floating pack */}
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              style={{
-                filter: [
-                  "drop-shadow(0 28px 56px rgba(109,40,217,0.7))",
-                  "drop-shadow(0 0 80px rgba(109,40,217,0.25))",
-                ].join(" "),
-                cursor: "default",
-                position: "relative",
-                zIndex: 1,
-              }}
-            >
-              <PackVisual imageUrl={pack.imageUrl} name={pack.name} width={220} />
-            </motion.div>
-
-            {/* Progress bar */}
-            <div
-              style={{
-                display: "flex",
-                gap: 4,
-                width: 220,
-                marginTop: 24,
-                position: "relative",
-                zIndex: 1,
-              }}
-            >
-              {[...Array(MAX_ENERGY)].map((_, i) => (
-                <div
-                  key={i}
-                  style={{
-                    flex: 1,
-                    height: 5,
-                    borderRadius: 3,
-                    background: i < freePackCount
-                      ? "linear-gradient(90deg, #7c3aed, #a3e635)"
-                      : "rgba(109,40,217,0.15)",
-                    transition: "background 0.4s ease",
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* Lightning row */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                marginTop: 12,
-                position: "relative",
-                zIndex: 1,
-              }}
-            >
-              {hasFree ? (
-                <>
-                  <div style={{ display: "flex", gap: 3 }}>
-                    {[...Array(Math.min(freePackCount, 10))].map((_, i) => (
-                      <Zap
-                        key={i}
-                        size={13}
-                        style={{
-                          color: i < 3 ? "#a3e635" : i < 7 ? "#7c3aed" : "#c084fc",
-                          opacity: 0.85,
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: "rgba(163,230,53,0.8)",
-                    }}
-                  >
-                    {freePackCount}/{MAX_ENERGY}
-                  </span>
-                </>
-              ) : (
-                <span style={{ fontSize: 12, color: "rgba(192,132,252,0.38)" }}>
-                  {nextFreeTime ? `Prochain dans ${formatTimeUntil(nextFreeTime)}` : "Aucun booster"}
-                </span>
-              )}
-            </div>
-
-            {/* Collection label */}
-            <p
-              style={{
-                marginTop: 8,
-                fontSize: 11,
-                color: "rgba(192,132,252,0.35)",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                position: "relative",
-                zIndex: 1,
-              }}
-            >
-              {pack.cardsCount} cartes · Black vs White
-            </p>
-          </>
-        ) : (
-          <p style={{ color: "rgba(192,132,252,0.3)", fontSize: 14 }}>
-            Aucun booster disponible
-          </p>
-        )}
-      </div>
-
-      {/* ── Bottom: action buttons ── */}
-      {pack && (
+    <div className="flex flex-col min-h-[calc(100svh-96px)] px-6 pt-6 pb-4 gap-6">
+      {/* Barre du joueur */}
+      <div className="flex items-center justify-between shrink-0">
+        {/* Pièces */}
         <div
-          style={{
-            position: "fixed",
-            bottom: 80, // above bottom nav
-            left: 0,
-            right: 0,
-            padding: "0 20px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-            zIndex: 10,
-          }}
+          style={{ backdropFilter: "blur(7px)", background: "rgba(18,33,41,0.78)", border: "1px solid #223944", borderRadius: 100 }}
+          className="flex items-center gap-2 pl-[10px] pr-2 py-[6px]"
         >
-          {error && (
-            <p
-              style={{
-                textAlign: "center",
-                fontSize: 12,
-                color: "#f87171",
-                background: "rgba(239,68,68,0.1)",
-                border: "1px solid rgba(239,68,68,0.2)",
-                borderRadius: 10,
-                padding: "6px 12px",
-              }}
+          <Image src="/brand/piece.png" alt="" width={24} height={23} className="object-contain shrink-0" />
+          <span className="font-unbounded font-semibold text-[13px] text-mv-text whitespace-nowrap">
+            {userData ? userData.coins.toLocaleString("fr-FR") : "—"}
+          </span>
+          <Link href="/shop">
+            <div className="w-[26px] h-[26px] rounded-full bg-mv-accent flex items-center justify-center shrink-0">
+              <Plus size={14} color="white" />
+            </div>
+          </Link>
+        </div>
+
+        {/* Avatar centré */}
+        <div className="flex flex-col items-center gap-[6px]">
+          <div style={{ border: "3px solid #ea4316", borderRadius: 32 }} className="size-16 overflow-hidden relative">
+            <Avatar src={userData?.avatarUrl} name={userData?.username} size="lg" className="border-0" />
+          </div>
+          <span className="font-inter font-semibold text-[11px] text-mv-muted">
+            {userData ? `${userData.username} lv.${userData.level}` : "—"}
+          </span>
+        </div>
+
+        {/* Raccourcis */}
+        <div className="flex items-center gap-2">
+          <Link href="/messages">
+            <div
+              style={{ backdropFilter: "blur(7px)", background: "rgba(18,33,41,0.78)", border: "1px solid #223944" }}
+              className="size-11 rounded-[22px] flex items-center justify-center"
             >
-              {error}
-            </p>
+              <MessageCircle size={20} className="text-mv-muted" />
+            </div>
+          </Link>
+          <Link href="/gifts">
+            <div className="relative size-11 flex items-center justify-center">
+              <div
+                style={{ backdropFilter: "blur(7px)", background: "rgba(18,33,41,0.78)", border: "1px solid #223944" }}
+                className="size-11 rounded-[22px] flex items-center justify-center"
+              >
+                <Gift size={20} className="text-mv-muted" />
+              </div>
+              <div className="absolute top-[6px] right-[6px] size-[8px] rounded-full bg-mv-accent border-2 border-[#0a1419]" />
+            </div>
+          </Link>
+          <Link href="/settings">
+            <div
+              style={{ backdropFilter: "blur(7px)", background: "rgba(18,33,41,0.78)", border: "1px solid #223944" }}
+              className="size-11 rounded-[22px] flex items-center justify-center"
+            >
+              <Settings size={20} className="text-mv-muted" />
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Titre MEROVERSE */}
+      <h1
+        className="font-unbounded font-bold text-[40px] tracking-[-0.4px] text-center shrink-0 leading-[1.1]"
+        style={{ textShadow: "0px 0px 24px rgba(249,35,47,0.35)" }}
+      >
+        <span className="text-mv-text">MERO</span>
+        <span className="text-mv-accent">VERSE</span>
+      </h1>
+
+      {/* Vitrine booster */}
+      <div
+        className="flex-1 flex flex-col items-center justify-between overflow-hidden rounded-[20px] pt-[22px] pb-4 px-4 border relative"
+        style={{
+          background: "linear-gradient(57deg, rgba(234,67,22,0) 0%, rgba(234,67,22,0) 50%, rgba(234,67,22,0.55) 82%, rgba(249,35,47,0.9) 100%), linear-gradient(90deg, rgba(18,33,41,0.78), rgba(18,33,41,0.78))",
+          borderColor: "#223944",
+          backdropFilter: "blur(7px)",
+        }}
+      >
+        {/* Lueurs bicolores */}
+        <div className="absolute inset-0 overflow-hidden rounded-[20px] pointer-events-none">
+          <div style={{ position: "absolute", background: "rgba(234,67,22,0.9)", filter: "blur(11px)", width: 113, height: 344, top: 82, left: -10, borderRadius: 16 }} />
+          <div style={{ position: "absolute", background: "rgba(109,220,253,0.85)", filter: "blur(11px)", width: 113, height: 344, top: 82, left: 92, borderRadius: 16 }} />
+          <div style={{ position: "absolute", width: 205, height: 295, left: -107, top: 106 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/halo-noir-orange.svg" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          </div>
+          <div style={{ position: "absolute", width: 205, height: 295, left: 98, top: 106 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/halo-blanc-cyan.svg" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          </div>
+        </div>
+
+        {/* Booster (cliquable) */}
+        <div className="flex-1 flex items-center justify-center relative z-10">
+          {pack ? (
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              onClick={openPack}
+              className={cn("cursor-pointer select-none", loading && "opacity-60 pointer-events-none")}
+            >
+              <div
+                className="relative overflow-hidden"
+                style={{
+                  width: 195, height: 328, borderRadius: 8,
+                  boxShadow: "0 0 10px rgba(255,255,255,0.35), 0 14px 24px rgba(0,0,0,0.45)",
+                }}
+              >
+                {/* Use img for jfif support */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={pack.imageUrl}
+                  alt={pack.name}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              </div>
+            </motion.div>
+          ) : (
+            <p className="text-mv-muted text-sm">Aucun booster disponible</p>
+          )}
+        </div>
+
+        {error && (
+          <p className="text-xs text-red-400 text-center mb-2 z-10 relative">{error}</p>
+        )}
+
+        {/* Minuteurs */}
+        <div className="flex items-center gap-2 w-full z-10 shrink-0 relative">
+          {/* Énergie */}
+          <div
+            className="flex-1 flex items-center justify-center gap-[6px] px-[10px] py-[9px] rounded-full"
+            style={{ background: "rgba(24,43,52,0.78)", backdropFilter: "blur(7px)" }}
+          >
+            <div style={{ boxShadow: "0 0 6px rgba(109,220,253,0.7)" }}>
+              <Image src="/brand/eclair.png" alt="" width={12} height={19} className="object-contain" />
+            </div>
+            <span className="font-inter font-semibold text-[11px] text-mv-text whitespace-nowrap">
+              {isMaxEnergy ? "Énergie au max" : `Énergie ${energy}/${MAX_ENERGY}`}
+            </span>
+          </div>
+
+          {/* Recharge (masqué si max énergie) */}
+          {!isMaxEnergy && nextEnergyTime && (
+            <div
+              className="flex-1 flex items-center justify-center gap-[6px] px-[10px] py-[9px] rounded-full"
+              style={{ background: "rgba(24,43,52,0.78)", backdropFilter: "blur(7px)" }}
+            >
+              <Clock size={14} className="text-mv-muted shrink-0" />
+              <span className="font-inter font-semibold text-[11px] text-mv-text whitespace-nowrap">
+                {formatEnergyTimer(nextEnergyTime)}
+              </span>
+            </div>
           )}
 
-          {/* Free button */}
-          <button
-            onClick={() => openPack(pack.id, true)}
-            disabled={!hasFree || loading}
-            style={{
-              width: "100%",
-              padding: "15px",
-              borderRadius: 16,
-              border: "none",
-              fontWeight: 800,
-              fontSize: 15,
-              letterSpacing: "0.03em",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              cursor: hasFree && !loading ? "pointer" : "default",
-              transition: "opacity 0.2s",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              ...(hasFree
-                ? {
-                    background: "linear-gradient(135deg, #059669, #10b981)",
-                    color: "#fff",
-                    boxShadow: "0 4px 20px rgba(5,150,105,0.45), 0 0 0 1px rgba(5,150,105,0.25)",
-                    opacity: loading ? 0.6 : 1,
-                  }
-                : {
-                    background: "rgba(8,4,24,0.7)",
-                    color: "rgba(192,132,252,0.35)",
-                    border: "1px solid rgba(109,40,217,0.15)",
-                  }),
-            }}
+          {/* Badge collection */}
+          <div
+            className="size-10 rounded-[20px] flex items-center justify-center shrink-0 border-2 border-[#0a1419]"
+            style={{ background: "#6ddcfd" }}
           >
-            {hasFree ? (
-              <><Zap size={16} /> Ouvrir gratuitement</>
-            ) : (
-              <><Lock size={14} /> {nextFreeTime ? formatTimeUntil(nextFreeTime) : "Aucun booster"}</>
-            )}
-          </button>
-
-          {/* Paid button */}
-          <button
-            onClick={() => openPack(pack.id, false)}
-            disabled={!canAfford || loading}
-            style={{
-              width: "100%",
-              padding: "13px",
-              borderRadius: 16,
-              border: "none",
-              fontWeight: 700,
-              fontSize: 14,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              cursor: canAfford && !loading ? "pointer" : "default",
-              transition: "opacity 0.2s",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              ...(canAfford
-                ? {
-                    background: "linear-gradient(135deg, #6d28d9, #1d4ed8)",
-                    color: "#fff",
-                    boxShadow: "0 4px 20px rgba(109,40,217,0.4)",
-                    opacity: loading ? 0.6 : 1,
-                  }
-                : {
-                    background: "rgba(8,4,24,0.7)",
-                    color: "rgba(192,132,252,0.35)",
-                    border: "1px solid rgba(109,40,217,0.15)",
-                  }),
-            }}
-          >
-            <Coins size={14} />
-            <span>{pack.price} Melocoins</span>
-            {!canAfford && (
-              <span style={{ fontSize: 11, opacity: 0.5 }}>· insuffisant</span>
-            )}
-          </button>
+            <span className="font-extrabold text-[11px] text-[#1d3545]">{ownedCount}</span>
+          </div>
         </div>
-      )}
+      </div>
 
       {drawnCards && (
         <PackOpeningModal cards={drawnCards} onClose={() => setDrawnCards(null)} />

@@ -22,6 +22,16 @@ export function formatRelativeTime(date: Date): string {
   return `Il y a ${days}j`;
 }
 
+export function formatEnergyTimer(date: Date): string {
+  const diff = date.getTime() - Date.now();
+  if (diff <= 0) return "0 s";
+  const totalSecs = Math.floor(diff / 1000);
+  const mins = Math.floor(totalSecs / 60);
+  const secs = totalSecs % 60;
+  if (mins > 0) return `${mins} min ${String(secs).padStart(2, "0")} s`;
+  return `${secs} s`;
+}
+
 export function formatTimeUntil(date: Date): string {
   const now = new Date();
   const diff = date.getTime() - now.getTime();
