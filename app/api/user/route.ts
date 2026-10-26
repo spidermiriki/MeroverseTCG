@@ -21,6 +21,8 @@ export async function GET() {
       energyCount: true,
       lastEnergyTick: true,
       isAdmin: true,
+      level: true,
+      avatarUrl: true,
     },
   });
 

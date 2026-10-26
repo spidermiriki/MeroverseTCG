@@ -9,6 +9,8 @@ export default withAuth({
 export const config = {
   matcher: [
     "/home",
+    "/messages",
+    "/gifts",
     "/collection/:path*",
     "/exchange",
     "/settings",
